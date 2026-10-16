@@ -44,16 +44,12 @@ let isSending = false;
 
 // PWA インストール制御 (beforeinstallprompt)
 let deferredInstallPrompt = null;
-const btnInstallApp = document.getElementById('btnInstallApp');
 const btnModalInstallApp = document.getElementById('btnModalInstallApp');
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredInstallPrompt = e;
   console.log('[PWA] beforeinstallprompt captured!');
-  if (btnInstallApp) {
-    btnInstallApp.style.display = 'flex';
-  }
 });
 
 async function triggerPwaInstall() {
@@ -62,7 +58,6 @@ async function triggerPwaInstall() {
     const { outcome } = await deferredInstallPrompt.userChoice;
     console.log('[PWA] User choice:', outcome);
     if (outcome === 'accepted') {
-      if (btnInstallApp) btnInstallApp.style.display = 'none';
       deferredInstallPrompt = null;
     }
   } else {
@@ -70,16 +65,12 @@ async function triggerPwaInstall() {
   }
 }
 
-if (btnInstallApp) {
-  btnInstallApp.addEventListener('click', triggerPwaInstall);
-}
 if (btnModalInstallApp) {
   btnModalInstallApp.addEventListener('click', triggerPwaInstall);
 }
 
 window.addEventListener('appinstalled', () => {
   console.log('[PWA] Application successfully installed!');
-  if (btnInstallApp) btnInstallApp.style.display = 'none';
   deferredInstallPrompt = null;
 });
 
@@ -210,9 +201,10 @@ function setupEventListeners() {
     }
   }
 
-  // 初期化：保存された開閉状態を復元（デフォルトは展開）
-  const savedCollapsed = localStorage.getItem('mytranscend_visual_collapsed') === 'true';
-  updateVisualAccordionState(savedCollapsed);
+  // 初期化：保存された開閉状態を復元（未保存の場合はデフォルトで【たたんだ状態】true）
+  const savedCollapsed = localStorage.getItem('mytranscend_visual_collapsed');
+  const initialCollapsed = savedCollapsed !== null ? savedCollapsed === 'true' : true;
+  updateVisualAccordionState(initialCollapsed);
 
   btnToggleVisual.addEventListener('click', () => {
     const willCollapse = !visualStage.classList.contains('collapsed');

@@ -16,7 +16,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 
   <!-- Style -->
-  <link rel="stylesheet" href="./css/style.css?v=2.0">
+  <link rel="stylesheet" href="./css/style.css?v=2.0.1">
 </head>
 <body>
 
@@ -25,11 +25,10 @@
     <div class="logo-group">
       <span class="wedding-ring">💍</span>
       <h1 class="app-title">MyTranscend</h1>
-      <span class="app-version">v2.0</span>
+      <span class="app-version">v2.0.1</span>
       <span id="engineBadge" class="engine-badge" title="現在のAI推論エンジン">⚡ 3.8 Flash</span>
     </div>
     <div class="header-actions">
-      <button id="btnInstallApp" class="icon-btn install-btn" title="ホーム画面にアプリをインストール" style="display: none;">📲</button>
       <button id="btnSyncSheets" class="icon-btn" title="最新データ取り込み (スプシ＆Git同期)">🔄</button>
       <button id="btnSaveContext" class="icon-btn" title="会話をCONTEXT.mdに保存 (Git同期)">📤</button>
       <button id="btnSettings" class="icon-btn" title="設定">⚙️</button>
@@ -43,13 +42,13 @@
       <button id="tabRice" class="char-tab">ライス 🌸</button>
     </div>
     <button id="btnToggleVisual" class="visual-toggle-btn" title="画像表示の開閉">
-      <span id="visualToggleIcon">🔼</span>
-      <span id="visualToggleText" class="visual-toggle-text">画像を隠す</span>
+      <span id="visualToggleIcon">🔽</span>
+      <span id="visualToggleText" class="visual-toggle-text">画像を表示</span>
     </button>
   </div>
 
-  <!-- Visual Stage (3D / 2D Avatar) - Accordion Target -->
-  <section id="visualStage" class="visual-stage">
+  <!-- Visual Stage (3D / 2D Avatar) - Accordion Target (Default Collapsed) -->
+  <section id="visualStage" class="visual-stage collapsed">
     <!-- 3D Model Viewer (Hidden initially) -->
     <model-viewer id="modelViewer" 
                   class="hidden-stage"
@@ -154,7 +153,7 @@
     </div>
   </div>
 
-  <!-- Scripts (Cache-busting v2.0) -->
-  <script type="module" src="./js/app.js?v=2.0"></script>
+  <!-- Scripts (Cache-busting v2.0.1) -->
+  <script type="module" src="./js/app.js?v=2.0.1"></script>
 </body>
 </html>
