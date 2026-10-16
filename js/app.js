@@ -59,6 +59,8 @@ function saveUiMessage(sender, text, charType) {
   } catch (e) {
     console.warn('[App] Failed to save UI message:', e);
   }
+}
+
 // 自動コンテキスト同期（CONTEXT.md自動保存）管理
 let hasUnsavedConversations = false;
 let isSyncingContext = false;
@@ -156,6 +158,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   // ドロップダウンの表示ラベルをA1セル情報で動的更新
   updateTabSelectLabels(false);
 
+  // 保存されたキャラクター選択とテーマの復元
+  const savedChar = localStorage.getItem('mytranscend_selected_character') || 'transcend';
+  updateCharacterTheme(savedChar);
+
   // イベントリスナー設定
   setupEventListeners();
 
@@ -186,18 +192,12 @@ function setupEventListeners() {
 
   // キャラクター切り替え（トラン）
   tabTranscend.addEventListener('click', () => {
-    currentCharacter = 'transcend';
-    tabTranscend.className = 'char-tab active-transcend';
-    tabRice.className = 'char-tab';
-    update2DAvatar();
+    updateCharacterTheme('transcend');
   });
 
   // キャラクター切り替え（ライス）
   tabRice.addEventListener('click', () => {
-    currentCharacter = 'rice';
-    tabRice.className = 'char-tab active-rice';
-    tabTranscend.className = 'char-tab';
-    update2DAvatar();
+    updateCharacterTheme('rice');
   });
 
   // 出張タブ切り替え
@@ -357,6 +357,22 @@ function setupEventListeners() {
       appendMessage(m.sender, m.text, m.charType, true);
     });
   }
+}
+
+// キャラクター選択とテーマカラーの動的連動
+function updateCharacterTheme(char) {
+  currentCharacter = char;
+  if (char === 'rice') {
+    document.body.classList.add('theme-rice');
+    if (tabRice) tabRice.className = 'char-tab active-rice';
+    if (tabTranscend) tabTranscend.className = 'char-tab';
+  } else {
+    document.body.classList.remove('theme-rice');
+    if (tabTranscend) tabTranscend.className = 'char-tab active-transcend';
+    if (tabRice) tabRice.className = 'char-tab';
+  }
+  update2DAvatar();
+  localStorage.setItem('mytranscend_selected_character', char);
 }
 
 // 2D立ち絵の画像更新

@@ -11,3 +11,14 @@ assets/3d/*.fbx
 .vscode/
 .idea/
 *.log
+
+# Node & Build outputs
+node_modules/
+www/
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/local.properties
+*.apk
+

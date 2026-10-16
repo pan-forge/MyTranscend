@@ -11,6 +11,26 @@
   --text-sub: #9ca3af;
   --border-color: #2e303e;
   --font-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+
+  /* 動的テーマ変数（デフォルト：トランセンド / サイバーオレンジ＆レッド） */
+  --theme-gradient: linear-gradient(135deg, #f97316, #ef4444);
+  --theme-primary: #f97316;
+  --theme-primary-rgb: 249, 115, 22;
+  --theme-glow: rgba(249, 115, 22, 0.4);
+  --theme-bg-tint: rgba(249, 115, 22, 0.15);
+  --theme-border-tint: rgba(249, 115, 22, 0.4);
+  --stage-radial: radial-gradient(circle at 50% 30%, #261c18 0%, var(--bg-main) 80%);
+}
+
+/* ライスシャワー テーマ（ブルーローズ＆アメジストパープル） */
+body.theme-rice {
+  --theme-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  --theme-primary: #a855f7;
+  --theme-primary-rgb: 168, 85, 247;
+  --theme-glow: rgba(139, 92, 246, 0.45);
+  --theme-bg-tint: rgba(59, 130, 246, 0.15);
+  --theme-border-tint: rgba(139, 92, 246, 0.4);
+  --stage-radial: radial-gradient(circle at 50% 30%, #181d2e 0%, var(--bg-main) 80%);
 }
 
 * {
@@ -54,15 +74,17 @@ body {
 .app-title {
   font-size: 1.15rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #f97316, #ef4444);
+  background: var(--theme-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   letter-spacing: 0.5px;
+  transition: all 0.3s ease;
 }
 
 .wedding-ring {
   font-size: 1rem;
-  filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
+  filter: drop-shadow(0 0 5px var(--theme-glow));
+  transition: filter 0.3s ease;
 }
 
 .app-version {
@@ -160,21 +182,21 @@ body {
 
 .visual-toggle-btn:active {
   transform: scale(0.95);
-  background: rgba(249, 115, 22, 0.15);
-  color: var(--accent-orange);
+  background: var(--theme-bg-tint);
+  color: var(--theme-primary);
 }
 
 /* Visual Stage (Collapsible Accordion Target) */
 .visual-stage {
   position: relative;
   height: 38dvh;
-  background: radial-gradient(circle at 50% 30%, #1e202e 0%, var(--bg-main) 80%);
+  background: var(--stage-radial);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid var(--border-color);
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, background 0.3s ease;
 }
 
 .visual-stage.collapsed {
@@ -244,8 +266,8 @@ model-viewer {
 .mode-tab.active-mode {
   background: var(--bg-input);
   color: var(--text-main);
-  border: 1px solid var(--accent-orange);
-  box-shadow: 0 1px 6px rgba(249, 115, 22, 0.3);
+  border: 1px solid var(--theme-primary);
+  box-shadow: 0 1px 6px var(--theme-glow);
 }
 
 .char-tabs {
@@ -307,17 +329,18 @@ model-viewer {
 }
 
 .schedule-banner .badge {
-  background: rgba(249, 115, 22, 0.15);
-  border: 1px solid rgba(249, 115, 22, 0.4);
+  background: var(--theme-bg-tint);
+  border: 1px solid var(--theme-border-tint);
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 700;
-  color: var(--accent-orange);
+  color: var(--theme-primary);
+  transition: all 0.3s ease;
 }
 
 .tab-select {
   background: var(--bg-input);
-  color: var(--accent-orange);
+  color: var(--theme-primary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 3px 6px;
@@ -325,6 +348,7 @@ model-viewer {
   font-weight: 700;
   outline: none;
   cursor: pointer;
+  transition: color 0.3s ease;
 }
 
 .banner-bottom-row {
@@ -435,11 +459,11 @@ model-viewer {
 }
 
 .chat-input:focus {
-  border-color: var(--accent-orange);
+  border-color: var(--theme-primary);
 }
 
 .send-btn {
-  background: linear-gradient(135deg, #f97316, #ef4444);
+  background: var(--theme-gradient);
   border: none;
   color: white;
   width: 40px;
@@ -451,7 +475,8 @@ model-viewer {
   cursor: pointer;
   font-size: 1.1rem;
   flex-shrink: 0;
-  transition: transform 0.2s;
+  transition: transform 0.2s, background 0.3s ease;
+  box-shadow: 0 2px 8px var(--theme-glow);
 }
 
 .send-btn:active {
@@ -512,13 +537,15 @@ model-viewer {
 }
 
 .modal-save-btn {
-  background: linear-gradient(135deg, #f97316, #ef4444);
+  background: var(--theme-gradient);
   color: white;
   border: none;
   padding: 10px;
   border-radius: 8px;
   font-weight: 700;
   cursor: pointer;
+  transition: background 0.3s ease;
+}
 }
 
 .modal-danger-btn {
