@@ -1,6 +1,6 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
 import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.8';
-import { sendChatMessage, chatHistories } from './gemini.js?v=1.8';
+import { sendChatMessage, chatHistories, clearGeminiHistories } from './gemini.js?v=2.2';
 import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.8';
 import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.8';
 
@@ -32,6 +32,34 @@ const sheetIdInput = document.getElementById('sheetIdInput');
 const customTabInput = document.getElementById('customTabInput');
 const githubTokenInput = document.getElementById('githubTokenInput');
 const btnSaveSettings = document.getElementById('btnSaveSettings');
+const btnResetChat = document.getElementById('btnResetChat');
+
+// UI会話履歴の永続化管理
+function loadStoredUiMessages() {
+  try {
+    const saved = localStorage.getItem('mytranscend_chat_ui_messages');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn('[App] Failed to load stored UI messages:', e);
+  }
+  return [];
+}
+
+const storedUiMessages = loadStoredUiMessages();
+
+function saveUiMessage(sender, text, charType) {
+  storedUiMessages.push({ sender, text, charType, timestamp: Date.now() });
+  if (storedUiMessages.length > 80) {
+    storedUiMessages.splice(0, storedUiMessages.length - 80);
+  }
+  try {
+    localStorage.setItem('mytranscend_chat_ui_messages', JSON.stringify(storedUiMessages));
+  } catch (e) {
+    console.warn('[App] Failed to save UI message:', e);
+  }
+}
 
 // 状態管理
 let currentCharacter = 'transcend'; // 'transcend' | 'rice'
@@ -276,6 +304,25 @@ function setupEventListeners() {
       }
     });
   }
+
+  // 会話履歴の画面復元（保存メッセージがあれば初期メッセージを置き換えて描画）
+  if (storedUiMessages && storedUiMessages.length > 0) {
+    chatContainer.innerHTML = '';
+    storedUiMessages.forEach(m => {
+      appendMessage(m.sender, m.text, m.charType, true);
+    });
+  }
+
+  // 会話履歴クリアボタン
+  if (btnResetChat) {
+    btnResetChat.addEventListener('click', () => {
+      if (confirm('スマホ内の会話履歴をすべて消去して初期状態に戻す？\n（※GitHubに保存されたログは消えません）')) {
+        localStorage.removeItem('mytranscend_chat_ui_messages');
+        clearGeminiHistories();
+        location.reload();
+      }
+    });
+  }
 }
 
 // 2D立ち絵の画像更新
@@ -403,7 +450,7 @@ function updateEngineBadge(modelName) {
 }
 
 // メッセージUI描画
-function appendMessage(sender, text, charType = 'transcend') {
+function appendMessage(sender, text, charType = 'transcend', skipSave = false) {
   const row = document.createElement('div');
   row.className = `message-row ${sender}`;
 
@@ -427,6 +474,10 @@ function appendMessage(sender, text, charType = 'transcend') {
 
   chatContainer.appendChild(row);
   chatContainer.scrollTop = chatContainer.scrollHeight;
+
+  if (!skipSave) {
+    saveUiMessage(sender, text, charType);
+  }
 }
 
 // タイピング中インジケーター

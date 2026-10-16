@@ -3,11 +3,42 @@
 const GEMINI_MODELS = ['gemini-3.8-flash'];
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
-// キャラクターごとの会話履歴
-export const chatHistories = {
-  transcend: [],
-  rice: []
-};
+// キャラクターごとの会話履歴（LocalStorageから自動復元）
+function loadSavedGeminiHistories() {
+  try {
+    const saved = localStorage.getItem('mytranscend_gemini_history');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        transcend: Array.isArray(parsed.transcend) ? parsed.transcend : [],
+        rice: Array.isArray(parsed.rice) ? parsed.rice : []
+      };
+    }
+  } catch (e) {
+    console.warn('[Gemini] Failed to parse saved histories:', e);
+  }
+  return { transcend: [], rice: [] };
+}
+
+export const chatHistories = loadSavedGeminiHistories();
+
+export function saveGeminiHistories() {
+  try {
+    const trimmed = {
+      transcend: chatHistories.transcend.slice(-40),
+      rice: chatHistories.rice.slice(-40)
+    };
+    localStorage.setItem('mytranscend_gemini_history', JSON.stringify(trimmed));
+  } catch (e) {
+    console.warn('[Gemini] Failed to save histories to LocalStorage:', e);
+  }
+}
+
+export function clearGeminiHistories() {
+  chatHistories.transcend.length = 0;
+  chatHistories.rice.length = 0;
+  localStorage.removeItem('mytranscend_gemini_history');
+}
 
 /**
  * トランセンドのシステムプロンプト生成
@@ -153,6 +184,9 @@ export async function sendChatMessage(apiKey, character, userMessage, tripSchedu
           role: 'model',
           parts: [{ text: replyText }]
         });
+
+        // LocalStorageに最新履歴を保存
+        saveGeminiHistories();
 
         return { reply: replyText, model: model };
       } catch (err) {
