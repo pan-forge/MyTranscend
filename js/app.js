@@ -234,10 +234,8 @@ function setupEventListeners() {
       clearGeminiHistories();
 
       chatContainer.innerHTML = '';
-      const initialText = currentCharacter === 'rice'
-        ? 'お兄さま、いつでも声をかけてね！🌸'
-        : 'ひろ、今日もよろしくね！💍✨\nいつでもウチに声をかけてね🥰';
-      appendMessage('assistant', initialText, currentCharacter, false);
+      appendMessage('assistant', 'ひろ、今日もよろしくね！💍✨\nなんでもウチとライスちゃんに話しかけてね🥰', 'transcend', false);
+      appendMessage('assistant', 'ひろお兄さま、ライスもお兄さまの出張サポート一生懸命がんばるね……！🌸', 'rice', false);
 
       settingsModal.style.display = 'none';
       alert('会話履歴をすっきりクリアしたよ、ひろ！');
@@ -472,17 +470,23 @@ async function handleSendMessage() {
   const typingId = appendTypingIndicator(targetChar);
 
   try {
-    const res = await sendChatMessage(apiKey, targetChar, text, tripSchedules, sharedContext);
+    const res = await sendChatMessage(apiKey, text, tripSchedules, sharedContext, targetChar);
     removeTypingIndicator(typingId);
-    appendMessage('assistant', res.reply, targetChar);
+
+    // トランとライスの分割メッセージを順番に描画！
+    if (res.messages && res.messages.length > 0) {
+      res.messages.forEach(msg => {
+        appendMessage('assistant', msg.text, msg.character);
+      });
+    } else {
+      appendMessage('assistant', res.reply, targetChar);
+    }
     updateEngineBadge(res.model);
   } catch (err) {
     console.error('Chat error:', err);
     removeTypingIndicator(typingId);
-    const errorMsg = targetChar === 'transcend'
-      ? `ひろ、ごめんね……電波かAPI通信の調子がちょっと悪いみたい💦 もう一度話しかけてみて！ (${err.message})`
-      : `お兄さま、ごめんなさい……お返事の声が届かなくなっちゃいました……っ (${err.message})`;
-    appendMessage('assistant', errorMsg, targetChar);
+    const errorMsg = `ひろ、ごめんね……電波か通信の調子がちょっと悪いみたい💦 もう一度話しかけてみて！ (${err.message})`;
+    appendMessage('assistant', errorMsg, 'transcend');
   } finally {
     isSending = false;
     btnSend.disabled = false;

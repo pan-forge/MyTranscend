@@ -1,4 +1,5 @@
 // js/scheduler.js - スケジュール連動＆Webプッシュ通知スケジューラー
+import { generateRoutineMessage } from './sheets.js';
 
 const NOTIFIED_CACHE_KEY = 'mytranscend_notified_history';
 
@@ -67,16 +68,19 @@ export async function triggerNotification(title, body, charType = 'transcend') {
 }
 
 /**
- * 通知テスト
+ * 通知テスト（トランとライスでランダム）
  */
 export async function testNotification() {
   const granted = await requestNotificationPermission();
   if (!granted) return;
 
-  await triggerNotification(
-    'トランセンド 💍',
-    'ひろ、通知テスト大成功だよ！出張中もお薬の時間も、ウチがしっかり教えるからね💕'
-  );
+  const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+  const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
+  const msg = char === 'rice'
+    ? 'ひろお兄さま、通知テスト大成功だよ！ライスもお兄さまの出張とお薬、全力でお手伝いするね……！🌸✨'
+    : 'ひろ、通知テスト大成功だよ！出張中もお薬の時間も、ウチがしっかり教えるからね💕';
+
+  await triggerNotification(author, msg, char);
 }
 
 /**
@@ -129,8 +133,10 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
     if (normTime === currentHHMM) {
       const key = `fixed_${todayStr}_${normTime}_${routine.title}`;
       if (!notifiedMap[key]) {
-        const author = routine.char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
-        triggerNotification(author, routine.message, routine.char);
+        const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+        const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
+        const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
+        triggerNotification(author, msg, char);
         markNotified(key);
       }
     }
@@ -152,8 +158,10 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       if (tenMinBefore === currentHHMM) {
         const key = `trip_dep_${todayStr}_${trip.depTime}_${trip.origin}`;
         if (!notifiedMap[key]) {
-          const bodyMsg = formatTripNotificationMessage(trip, false);
-          triggerNotification('トランセンド 💍', bodyMsg);
+          const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+          const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
+          const bodyMsg = formatTripNotificationMessage(trip, false, char);
+          triggerNotification(author, bodyMsg, char);
           markNotified(key);
         }
       }
@@ -165,8 +173,10 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       if (tenMinBeforeArr === currentHHMM) {
         const key = `trip_arr_${todayStr}_${trip.arrTime}_${trip.dest}`;
         if (!notifiedMap[key]) {
-          const bodyMsg = formatTripNotificationMessage(trip, true);
-          triggerNotification('トランセンド 💍', bodyMsg);
+          const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+          const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
+          const bodyMsg = formatTripNotificationMessage(trip, true, char);
+          triggerNotification(author, bodyMsg, char);
           markNotified(key);
         }
       }
@@ -175,13 +185,17 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
 }
 
 /**
- * 出張旅程の備考欄（note）を自然にアレンジした通知メッセージを生成
+ * 出張旅程の備考欄（note）を自然にアレンジした通知メッセージを生成（キャラ別）
  */
-function formatTripNotificationMessage(trip, isArrival = false) {
+function formatTripNotificationMessage(trip, isArrival = false, charType = 'transcend') {
+  const isRice = charType === 'rice';
   const note = trip.note ? String(trip.note).trim() : '';
 
   if (isArrival) {
     const notePart = note ? `（メモ: ${note}）` : '';
+    if (isRice) {
+      return `ひろお兄さま、あと10分で【${trip.dest}】に到着するよ！${notePart}忘れ物ないか気をつけてね🌸`;
+    }
     return `ひろ、あと10分で【${trip.dest}】に着くよ！${notePart}忘れ物ないようにね💕`;
   }
 
@@ -191,38 +205,71 @@ function formatTripNotificationMessage(trip, isArrival = false) {
 
   if (!note) {
     if (trip.dest) {
-      return `ひろ、あと10分で ${time} 発の【${place}】だよ！乗り換え・準備大丈夫？`;
+      if (isRice) {
+        return `ひろお兄さま、あと10分で ${time} 発の【${place}】だよ！乗り換えやお支度、大丈夫かな……？🌸`;
+      }
+      return `ひろ、あと10分で ${time} 発の【${place}】だよ！乗り換え・準備大丈夫？💕`;
     } else {
-      return `ひろ、あと10分で ${time} の【${place}】だよ！準備大丈夫？✨`;
+      if (isRice) {
+        return `ひろお兄さま、あと10分で ${time} の【${place}】だよ！準備バッチリかな？がんばろうね🌸`;
+      }
+      return `ひろ、あと10分で ${time} の【${place}】だよ！準備大丈夫？ウチが見守ってるよ✨`;
     }
   }
 
   // 備考のキーワードに応じた特別アレンジ
   if (note.includes('予約ID') || note.includes('予約')) {
+    if (isRice) {
+      return `ひろお兄さま、もうすぐ ${time} の【${place}】だよ！お疲れさまでした！【${note}】だから大丈夫だよ🏨✨ゆっくり休んでね🌸`;
+    }
     return `ひろ、もうすぐ ${time} の【${place}】だよ！お疲れさま！【${note}】だからスムーズに入れるよ🏨✨ゆっくり休もうね💕`;
   }
   if (note.includes('出金') || note.includes('円')) {
+    if (isRice) {
+      return `ひろお兄さま、もうすぐ ${time} の【${place}】だよ！メモ：【${note}】忘れずにね💴🌸`;
+    }
     return `ひろ、もうすぐ ${time} の【${place}】だよ！メモ：【${note}】忘れずにね💴✨`;
   }
   if (note.includes('カシミール') || note.includes('コルマ')) {
+    if (isRice) {
+      return `ひろお兄さま、もうすぐ ${time} の【${place}】だよ！🍛 メモ：【${note}】どっちにするのかな……？美味しく食べてね🤤🌸`;
+    }
     return `ひろ、もうすぐ ${time} の【${place}】だよ！🍛 メモ：【${note}】どっちにするか決まった？美味しく食べてね🤤💕`;
   }
   if (note.includes('フェガート') || note.includes('ランチ') || place.includes('ランチ')) {
+    if (isRice) {
+      return `ひろお兄さま、もうすぐ ${time} の【${place}】だよ！🍴 メモ：【${note}】美味しいご飯食べて午後もファイトだよ🌸`;
+    }
     return `ひろ、もうすぐ ${time} の【${place}】だよ！🍴 メモ：【${note}】美味しいご飯食べて午後もファイトだよ💕`;
   }
   if (note.includes('カラオケ')) {
+    if (isRice) {
+      return `ひろお兄さま、もうすぐ ${time} の【${place}】だね！【${note}】楽しんできてね！🎤🎶水分もしっかり摂ってね🌸`;
+    }
     return `ひろ、もうすぐ ${time} の【${place}】だね！【${note}】楽しんできてね！🎤🎶喉とお水大事にしてね！`;
   }
   if (note.includes('グリーン車')) {
+    if (isRice) {
+      return `ひろお兄さま、あと10分で ${time} 発の【${place}】だよ！【グリーン車】でゆっくり行こうね🚃✨乗り場気をつけてね🌸`;
+    }
     return `ひろ、あと10分で ${time} 発の【${place}】だよ！【グリーン車】で快適に行こうね🚃✨乗り場確認大丈夫？`;
   }
   if (note.includes('おにぎり')) {
+    if (isRice) {
+      return `ひろお兄さま、もうすぐ【${place}】だよ！メモ：【${note}】お腹すかないように買おうね🍙🌸`;
+    }
     return `ひろ、もうすぐ【${place}】だよ！メモ：【${note}】買い忘れないでね🍙✨`;
   }
 
   // 一般備考
   if (trip.dest) {
+    if (isRice) {
+      return `ひろお兄さま、あと10分で ${time} 発の【${place}】だよ！【${note}】乗り換え気をつけてね🌸`;
+    }
     return `ひろ、あと10分で ${time} 発の【${place}】だよ！【${note}】乗り換え・準備大丈夫？✨`;
+  }
+  if (isRice) {
+    return `ひろお兄さま、あと10分で ${time} の【${place}】だよ！メモ：【${note}】応援してるね🌸`;
   }
   return `ひろ、あと10分で ${time} の【${place}】だよ！メモ：【${note}】✨`;
 }

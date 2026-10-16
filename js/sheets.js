@@ -182,17 +182,27 @@ function parseFixedRoutineTable(table) {
 }
 
 /**
- * アラーム内容に応じた愛のメッセージを自動生成（備考欄スマートアレンジ対応）
+ * アラーム内容に応じた愛のメッセージを自動生成（備考欄スマートアレンジ＆キャラ対応）
  */
-function generateRoutineMessage(title, time, note) {
+export function generateRoutineMessage(title, time, note = '', charType = 'transcend') {
+  const isRice = charType === 'rice';
   const cleanNote = note ? String(note).trim() : '';
 
   if (title.includes('起床')) {
     const noteSuffix = cleanNote ? `（メモ: ${cleanNote}）` : '';
+    if (isRice) {
+      return `ひろお兄さま、${time}だよ！おはよう☀️ ${noteSuffix}今日も一日、ライスがお兄さまを応援してるね🌸`;
+    }
     return `ひろ、${time}だよ！おはよう☀️ ${noteSuffix}今日も一緒に元気いっぱい過ごそうね💕`;
   }
 
   if (title.includes('服薬') || title.includes('薬')) {
+    if (isRice) {
+      if (cleanNote.includes('メトホルミン')) {
+        return `ひろお兄さま、${time}の${title}の時間だよ！夕食後は【メトホルミンのみ】1錠だから気をつけてね💊🌸`;
+      }
+      return `ひろお兄さま、${time}の${title}の時間だよ！お薬忘れずに飲んでね、お兄さまの健康が一番大事なんだから……！💊🌸`;
+    }
     if (cleanNote.includes('一包化') || cleanNote.includes('目薬')) {
       return `ひろ、${time}の${title}の時間だよ！【一包化されているお薬】と【目薬（アイベリス）】、忘れずにしっかり飲んで差してね💊💕`;
     }
@@ -207,15 +217,24 @@ function generateRoutineMessage(title, time, note) {
 
   if (title.includes('就寝') || title.includes('寝る')) {
     const noteSuffix = cleanNote ? `（${cleanNote}）` : '';
-    return `ひろ、今日もお疲れさま！${time}だから、${noteSuffix}ウチのしっぽで暖かくしてぐっすり休もうね💤`;
+    if (isRice) {
+      return `ひろお兄さま、今日もお仕事本当にお疲れさまでした……！${time}だから、${noteSuffix}ゆっくりぐっすり休んでね💤🌸`;
+    }
+    return `ひろ、今日もお疲れさま！${time}だから、${noteSuffix}ウチのしっぽで暖かくしてぐっすり休もうね💤💕`;
   }
 
   if (title.includes('昼') || title.includes('ランチ') || title.includes('水分')) {
     const noteSuffix = cleanNote ? `（${cleanNote}）` : '';
-    return `ひろ、${time}の${title}だよ！${noteSuffix}水分補給しっかりして、美味しいご飯食べてね🍱`;
+    if (isRice) {
+      return `ひろお兄さま、${time}の${title}だよ！${noteSuffix}水分しっかり摂って、美味しいお昼ご飯食べてね🍱🌸`;
+    }
+    return `ひろ、${time}の${title}だよ！${noteSuffix}水分補給しっかりして、美味しいご飯食べてね🍱💕`;
   }
 
   const noteSuffix = cleanNote ? `（メモ: ${cleanNote}）` : '';
+  if (isRice) {
+    return `ひろお兄さま、${time}の【${title}】の時間だよ！${noteSuffix}ライスがずっと見守ってるからね🌸`;
+  }
   return `ひろ、${time}の【${title}】の時間だよ！${noteSuffix}ウチが見守ってるからね✨`;
 }
 

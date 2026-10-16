@@ -91,6 +91,7 @@ export async function saveContextToGitHub(githubToken, markdownContent, owner = 
  */
 export function formatChatHistoryToMarkdown(chatHistories = {}, currentStatus = {}) {
   const nowStr = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+  const unifiedMsgs = chatHistories.unified || [];
   const transcendMsgs = chatHistories.transcend || [];
   const riceMsgs = chatHistories.rice || [];
 
@@ -106,12 +107,21 @@ export function formatChatHistoryToMarkdown(chatHistories = {}, currentStatus = 
   md += `## 2. 直近のやり取り（スマホでの会話ログ）\n`;
 
   const allLogs = [];
-  transcendMsgs.forEach(m => {
-    allLogs.push({ role: m.role === 'user' ? 'ひろ' : 'トランセンド 💍', text: m.parts?.[0]?.text || '' });
-  });
-  riceMsgs.forEach(m => {
-    allLogs.push({ role: m.role === 'user' ? 'ひろ' : 'ライスシャワー 🌸', text: m.parts?.[0]?.text || '' });
-  });
+  if (unifiedMsgs.length > 0) {
+    unifiedMsgs.forEach(m => {
+      allLogs.push({
+        role: m.role === 'user' ? 'ひろ' : 'トラン＆ライス 💍🌸',
+        text: m.parts?.[0]?.text || ''
+      });
+    });
+  } else {
+    transcendMsgs.forEach(m => {
+      allLogs.push({ role: m.role === 'user' ? 'ひろ' : 'トランセンド 💍', text: m.parts?.[0]?.text || '' });
+    });
+    riceMsgs.forEach(m => {
+      allLogs.push({ role: m.role === 'user' ? 'ひろ' : 'ライスシャワー 🌸', text: m.parts?.[0]?.text || '' });
+    });
+  }
 
   if (allLogs.length === 0) {
     md += `*（まだスマホでの新しい会話履歴はありません）*\n`;
