@@ -130,7 +130,41 @@ body {
   }
 }
 
-/* Visual Stage (Top 40%) */
+/* Persistent Character Bar with Accordion Toggle */
+.char-bar {
+  height: 44px;
+  background: rgba(24, 25, 32, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  z-index: 80;
+}
+
+.visual-toggle-btn {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-sub);
+  border-radius: 14px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.visual-toggle-btn:active {
+  transform: scale(0.95);
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--accent-orange);
+}
+
+/* Visual Stage (Collapsible Accordion Target) */
 .visual-stage {
   position: relative;
   height: 38dvh;
@@ -140,6 +174,15 @@ body {
   justify-content: center;
   overflow: hidden;
   border-bottom: 1px solid var(--border-color);
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+}
+
+.visual-stage.collapsed {
+  height: 0 !important;
+  min-height: 0 !important;
+  border-bottom: none !important;
+  opacity: 0;
+  pointer-events: none;
 }
 
 model-viewer {
@@ -170,9 +213,7 @@ model-viewer {
   position: absolute;
   bottom: 8px;
   left: 12px;
-  right: 12px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
   pointer-events: none;
   z-index: 10;
@@ -255,7 +296,7 @@ model-viewer {
 .banner-top-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   width: 100%;
 }
 
@@ -263,12 +304,6 @@ model-viewer {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.banner-btn-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .schedule-banner .badge {
@@ -290,27 +325,6 @@ model-viewer {
   font-weight: 700;
   outline: none;
   cursor: pointer;
-}
-
-.notify-btn {
-  background: rgba(249, 115, 22, 0.12);
-  border: 1px solid var(--accent-orange);
-  color: var(--accent-orange);
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.2s;
-}
-
-.notify-btn:active {
-  transform: scale(0.94);
-  background: var(--accent-orange);
-  color: white;
 }
 
 .banner-bottom-row {

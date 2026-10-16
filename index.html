@@ -16,7 +16,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 
   <!-- Style -->
-  <link rel="stylesheet" href="./css/style.css?v=1.9.2">
+  <link rel="stylesheet" href="./css/style.css?v=2.0">
 </head>
 <body>
 
@@ -25,18 +25,31 @@
     <div class="logo-group">
       <span class="wedding-ring">💍</span>
       <h1 class="app-title">MyTranscend</h1>
-      <span class="app-version">v1.9.2</span>
+      <span class="app-version">v2.0</span>
       <span id="engineBadge" class="engine-badge" title="現在のAI推論エンジン">⚡ 3.8 Flash</span>
     </div>
     <div class="header-actions">
       <button id="btnInstallApp" class="icon-btn install-btn" title="ホーム画面にアプリをインストール" style="display: none;">📲</button>
+      <button id="btnSyncSheets" class="icon-btn" title="最新データ取り込み (スプシ＆Git同期)">🔄</button>
       <button id="btnSaveContext" class="icon-btn" title="会話をCONTEXT.mdに保存 (Git同期)">📤</button>
       <button id="btnSettings" class="icon-btn" title="設定">⚙️</button>
     </div>
   </header>
 
-  <!-- Visual Stage (3D / 2D Avatar) -->
-  <section class="visual-stage">
+  <!-- Persistent Character Bar with Accordion Toggle -->
+  <div class="char-bar">
+    <div class="char-tabs">
+      <button id="tabTranscend" class="char-tab active-transcend">トラン 💍</button>
+      <button id="tabRice" class="char-tab">ライス 🌸</button>
+    </div>
+    <button id="btnToggleVisual" class="visual-toggle-btn" title="画像表示の開閉">
+      <span id="visualToggleIcon">🔼</span>
+      <span id="visualToggleText" class="visual-toggle-text">画像を隠す</span>
+    </button>
+  </div>
+
+  <!-- Visual Stage (3D / 2D Avatar) - Accordion Target -->
+  <section id="visualStage" class="visual-stage">
     <!-- 3D Model Viewer (Hidden initially) -->
     <model-viewer id="modelViewer" 
                   class="hidden-stage"
@@ -59,16 +72,10 @@
         <button id="btnMode2D" class="mode-tab active-mode">2D</button>
         <button id="btnMode3D" class="mode-tab">3D</button>
       </div>
-
-      <!-- Character Tabs (Transcend / Rice) -->
-      <div class="char-tabs">
-        <button id="tabTranscend" class="char-tab active-transcend">トラン 💍</button>
-        <button id="tabRice" class="char-tab">ライス 🌸</button>
-      </div>
     </div>
   </section>
 
-  <!-- Trip Schedule Banner with 2-row layout -->
+  <!-- Trip Schedule Banner -->
   <div id="scheduleBanner" class="schedule-banner">
     <div class="banner-top-row">
       <div class="banner-badge-group">
@@ -79,10 +86,6 @@
           <option value="261217">26/12/17(東京出張)</option>
           <option value="270121">27/01/21(東京出張)</option>
         </select>
-      </div>
-      <div class="banner-btn-group">
-        <button id="btnSyncSheets" class="notify-btn" title="スプシとCONTEXT.mdを最新状態に強制取得">🔄 最新データ取り込み</button>
-        <button id="btnTestNotify" class="notify-btn" title="通知テスト">🔔</button>
       </div>
     </div>
     <div class="banner-bottom-row">
@@ -151,7 +154,7 @@
     </div>
   </div>
 
-  <!-- Scripts (Cache-busting v1.9.2) -->
-  <script type="module" src="./js/app.js?v=1.9.2"></script>
+  <!-- Scripts (Cache-busting v2.0) -->
+  <script type="module" src="./js/app.js?v=2.0"></script>
 </body>
 </html>

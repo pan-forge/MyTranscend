@@ -15,9 +15,12 @@ const scheduleBanner = document.getElementById('scheduleBanner');
 const scheduleText = document.getElementById('scheduleText');
 const sheetTabSelect = document.getElementById('sheetTabSelect');
 const btnSyncSheets = document.getElementById('btnSyncSheets');
-const btnTestNotify = document.getElementById('btnTestNotify');
 const btnSaveContext = document.getElementById('btnSaveContext');
 const engineBadge = document.getElementById('engineBadge');
+const visualStage = document.getElementById('visualStage');
+const btnToggleVisual = document.getElementById('btnToggleVisual');
+const visualToggleIcon = document.getElementById('visualToggleIcon');
+const visualToggleText = document.getElementById('visualToggleText');
 const chatContainer = document.getElementById('chatContainer');
 const chatInput = document.getElementById('chatInput');
 const btnSend = document.getElementById('btnSend');
@@ -179,11 +182,10 @@ function setupEventListeners() {
     await loadSchedule(true);
   });
 
-  // スプシ＆共有コンテキスト最新状態の強制同期ボタン
+  // スプシ＆共有コンテキスト最新状態の強制同期ボタン (ヘッダーアイコン)
   btnSyncSheets.addEventListener('click', async () => {
     btnSyncSheets.disabled = true;
-    const origText = btnSyncSheets.textContent;
-    btnSyncSheets.textContent = '⏳ 取り込み中...';
+    btnSyncSheets.style.opacity = '0.5';
     try {
       await loadSchedule(true);
       alert('最新データ（スプシ＆共有コンテキスト）を取り込んだよ、ひろ💕');
@@ -191,13 +193,31 @@ function setupEventListeners() {
       alert(`最新データの取り込みに失敗しちゃった💦 (${err.message})`);
     } finally {
       btnSyncSheets.disabled = false;
-      btnSyncSheets.textContent = origText;
+      btnSyncSheets.style.opacity = '1';
     }
   });
 
-  // 通知テストボタン
-  btnTestNotify.addEventListener('click', async () => {
-    await testNotification();
+  // ビジュアルステージ開閉アコーディオン
+  function updateVisualAccordionState(isCollapsed) {
+    if (isCollapsed) {
+      visualStage.classList.add('collapsed');
+      visualToggleIcon.textContent = '🔽';
+      visualToggleText.textContent = '画像を表示';
+    } else {
+      visualStage.classList.remove('collapsed');
+      visualToggleIcon.textContent = '🔼';
+      visualToggleText.textContent = '画像を隠す';
+    }
+  }
+
+  // 初期化：保存された開閉状態を復元（デフォルトは展開）
+  const savedCollapsed = localStorage.getItem('mytranscend_visual_collapsed') === 'true';
+  updateVisualAccordionState(savedCollapsed);
+
+  btnToggleVisual.addEventListener('click', () => {
+    const willCollapse = !visualStage.classList.contains('collapsed');
+    updateVisualAccordionState(willCollapse);
+    localStorage.setItem('mytranscend_visual_collapsed', willCollapse ? 'true' : 'false');
   });
 
   // チャット送信
