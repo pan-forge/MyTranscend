@@ -111,6 +111,25 @@ body {
   transform: scale(0.92);
 }
 
+.install-btn {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.25), rgba(239, 68, 68, 0.25));
+  border: 1px solid var(--accent-orange);
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(249, 115, 22, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  }
+}
+
 /* Visual Stage (Top 40%) */
 .visual-stage {
   position: relative;

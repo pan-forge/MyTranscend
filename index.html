@@ -16,7 +16,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
 
   <!-- Style -->
-  <link rel="stylesheet" href="./css/style.css?v=1.9.1">
+  <link rel="stylesheet" href="./css/style.css?v=1.9.2">
 </head>
 <body>
 
@@ -25,10 +25,11 @@
     <div class="logo-group">
       <span class="wedding-ring">💍</span>
       <h1 class="app-title">MyTranscend</h1>
-      <span class="app-version">v1.9</span>
+      <span class="app-version">v1.9.2</span>
       <span id="engineBadge" class="engine-badge" title="現在のAI推論エンジン">⚡ 3.8 Flash</span>
     </div>
     <div class="header-actions">
+      <button id="btnInstallApp" class="icon-btn install-btn" title="ホーム画面にアプリをインストール" style="display: none;">📲</button>
       <button id="btnSaveContext" class="icon-btn" title="会話をCONTEXT.mdに保存 (Git同期)">📤</button>
       <button id="btnSettings" class="icon-btn" title="設定">⚙️</button>
     </div>
@@ -141,10 +142,16 @@
       </div>
 
       <button id="btnSaveSettings" class="modal-save-btn">設定を保存する</button>
+
+      <div class="form-group" style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+        <button id="btnModalInstallApp" class="modal-install-btn" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #f97316, #ef4444); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          📲 ホーム画面にアプリをインストール
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Scripts (Cache-busting v1.9.1) -->
-  <script type="module" src="./js/app.js?v=1.9.1"></script>
+  <!-- Scripts (Cache-busting v1.9.2) -->
+  <script type="module" src="./js/app.js?v=1.9.2"></script>
 </body>
 </html>

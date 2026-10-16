@@ -39,6 +39,47 @@ let fixedRoutines = [];
 let sharedContext = '';
 let isSending = false;
 
+// PWA インストール制御 (beforeinstallprompt)
+let deferredInstallPrompt = null;
+const btnInstallApp = document.getElementById('btnInstallApp');
+const btnModalInstallApp = document.getElementById('btnModalInstallApp');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  console.log('[PWA] beforeinstallprompt captured!');
+  if (btnInstallApp) {
+    btnInstallApp.style.display = 'flex';
+  }
+});
+
+async function triggerPwaInstall() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    console.log('[PWA] User choice:', outcome);
+    if (outcome === 'accepted') {
+      if (btnInstallApp) btnInstallApp.style.display = 'none';
+      deferredInstallPrompt = null;
+    }
+  } else {
+    alert('現在ブラウザがインストール準備中、または既にインストールされています。\nChrome右上のメニュー（︙）の「アプリをインストール」もお試しください。');
+  }
+}
+
+if (btnInstallApp) {
+  btnInstallApp.addEventListener('click', triggerPwaInstall);
+}
+if (btnModalInstallApp) {
+  btnModalInstallApp.addEventListener('click', triggerPwaInstall);
+}
+
+window.addEventListener('appinstalled', () => {
+  console.log('[PWA] Application successfully installed!');
+  if (btnInstallApp) btnInstallApp.style.display = 'none';
+  deferredInstallPrompt = null;
+});
+
 // PWA Service Worker 登録
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
