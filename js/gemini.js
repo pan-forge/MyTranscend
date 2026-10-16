@@ -192,7 +192,7 @@ export async function sendChatMessage(apiKey, userMessage, tripSchedule = [], sh
           contents: history,
           generationConfig: {
             temperature: 0.85,
-            maxOutputTokens: 1500
+            maxOutputTokens: 4096
           }
         };
 
