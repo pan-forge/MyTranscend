@@ -1,7 +1,7 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
 import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.8';
 import { sendChatMessage, chatHistories, clearGeminiHistories } from './gemini.js?v=2.4';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.8';
+import { testNotification, startScheduler, requestNotificationPermission, scheduleAllLocalNotifications } from './scheduler.js?v=2.0';
 import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.8';
 
 // DOM要素
@@ -420,6 +420,14 @@ async function loadSchedule(forceRefresh = false) {
 
     // 直近のこれからの予定を自動判定してバナー更新
     updateScheduleBanner();
+
+    // Android OSネイティブ（AlarmManager）へ全予定を一括スケジュール予約！
+    // ※アプリ終了・スリープ時でも時間になったらOSが自動的に通知を鳴らす
+    try {
+      await scheduleAllLocalNotifications(tripSchedules, fixedRoutines);
+    } catch (localNotifErr) {
+      console.warn('[App] LocalNotifications schedule warning:', localNotifErr);
+    }
 
     // スケジューラー（定期監視タイマー）を最新データで起動（毎分バナー更新も兼ねる）
     try {
