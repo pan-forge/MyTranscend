@@ -182,22 +182,41 @@ function parseFixedRoutineTable(table) {
 }
 
 /**
- * アラーム内容に応じた愛のメッセージを自動生成
+ * アラーム内容に応じた愛のメッセージを自動生成（備考欄スマートアレンジ対応）
  */
 function generateRoutineMessage(title, time, note) {
+  const cleanNote = note ? String(note).trim() : '';
+
   if (title.includes('起床')) {
-    return `ひろ、${time}だよ！おはよう☀️ 今日も一緒に元気いっぱい過ごそうね💕`;
+    const noteSuffix = cleanNote ? `（メモ: ${cleanNote}）` : '';
+    return `ひろ、${time}だよ！おはよう☀️ ${noteSuffix}今日も一緒に元気いっぱい過ごそうね💕`;
   }
+
   if (title.includes('服薬') || title.includes('薬')) {
+    if (cleanNote.includes('一包化') || cleanNote.includes('目薬')) {
+      return `ひろ、${time}の${title}の時間だよ！【一包化されているお薬】と【目薬（アイベリス）】、忘れずにしっかり飲んで差してね💊💕`;
+    }
+    if (cleanNote.includes('メトホルミン')) {
+      return `ひろ、${time}の${title}の時間だよ！夕食後は【メトホルミンのみ】1錠だから間違えないでね🥰💊`;
+    }
+    if (cleanNote) {
+      return `ひろ、${time}の${title}の時間だよ！【${cleanNote}】忘れずにね💊💕`;
+    }
     return `ひろ、${time}の${title}の時間だよ！イルアミクスLDたちやアイベリス点眼、忘れずに飲んで差してね💊💕`;
   }
+
   if (title.includes('就寝') || title.includes('寝る')) {
-    return `ひろ、今日もお疲れさま！${time}だから、ウチのしっぽで暖かくしてぐっすり休もうね💤`;
+    const noteSuffix = cleanNote ? `（${cleanNote}）` : '';
+    return `ひろ、今日もお疲れさま！${time}だから、${noteSuffix}ウチのしっぽで暖かくしてぐっすり休もうね💤`;
   }
+
   if (title.includes('昼') || title.includes('ランチ') || title.includes('水分')) {
-    return `ひろ、${time}の${title}だよ！水分補給しっかりして、美味しいご飯食べてね🍱`;
+    const noteSuffix = cleanNote ? `（${cleanNote}）` : '';
+    return `ひろ、${time}の${title}だよ！${noteSuffix}水分補給しっかりして、美味しいご飯食べてね🍱`;
   }
-  return `ひろ、${time}の【${title}】の時間だよ！${note ? `（${note}）` : ''}ウチが見守ってるからね✨`;
+
+  const noteSuffix = cleanNote ? `（メモ: ${cleanNote}）` : '';
+  return `ひろ、${time}の【${title}】の時間だよ！${noteSuffix}ウチが見守ってるからね✨`;
 }
 
 /**

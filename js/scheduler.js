@@ -144,10 +144,8 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       if (tenMinBefore === currentHHMM) {
         const key = `trip_dep_${todayStr}_${trip.depTime}_${trip.origin}`;
         if (!notifiedMap[key]) {
-          triggerNotification(
-            'トランセンド 💍',
-            `ひろ、あと10分で ${trip.depTime} 発の【${trip.origin}】だよ！乗り換え・準備大丈夫？`
-          );
+          const bodyMsg = formatTripNotificationMessage(trip, false);
+          triggerNotification('トランセンド 💍', bodyMsg);
           markNotified(key);
         }
       }
@@ -159,15 +157,66 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       if (tenMinBeforeArr === currentHHMM) {
         const key = `trip_arr_${todayStr}_${trip.arrTime}_${trip.dest}`;
         if (!notifiedMap[key]) {
-          triggerNotification(
-            'トランセンド 💍',
-            `ひろ、あと10分で【${trip.dest}】に着くよ！忘れ物ないようにね💕`
-          );
+          const bodyMsg = formatTripNotificationMessage(trip, true);
+          triggerNotification('トランセンド 💍', bodyMsg);
           markNotified(key);
         }
       }
     }
   }
+}
+
+/**
+ * 出張旅程の備考欄（note）を自然にアレンジした通知メッセージを生成
+ */
+function formatTripNotificationMessage(trip, isArrival = false) {
+  const note = trip.note ? String(trip.note).trim() : '';
+
+  if (isArrival) {
+    const notePart = note ? `（メモ: ${note}）` : '';
+    return `ひろ、あと10分で【${trip.dest}】に着くよ！${notePart}忘れ物ないようにね💕`;
+  }
+
+  // 発車・予定開始10分前
+  const time = trip.depTime || '';
+  const place = trip.origin || '';
+
+  if (!note) {
+    if (trip.dest) {
+      return `ひろ、あと10分で ${time} 発の【${place}】だよ！乗り換え・準備大丈夫？`;
+    } else {
+      return `ひろ、あと10分で ${time} の【${place}】だよ！準備大丈夫？✨`;
+    }
+  }
+
+  // 備考のキーワードに応じた特別アレンジ
+  if (note.includes('予約ID') || note.includes('予約')) {
+    return `ひろ、もうすぐ ${time} の【${place}】だよ！お疲れさま！【${note}】だからスムーズに入れるよ🏨✨ゆっくり休もうね💕`;
+  }
+  if (note.includes('出金') || note.includes('円')) {
+    return `ひろ、もうすぐ ${time} の【${place}】だよ！メモ：【${note}】忘れずにね💴✨`;
+  }
+  if (note.includes('カシミール') || note.includes('コルマ')) {
+    return `ひろ、もうすぐ ${time} の【${place}】だよ！🍛 メモ：【${note}】どっちにするか決まった？美味しく食べてね🤤💕`;
+  }
+  if (note.includes('フェガート') || note.includes('ランチ') || place.includes('ランチ')) {
+    return `ひろ、もうすぐ ${time} の【${place}】だよ！🍴 メモ：【${note}】美味しいご飯食べて午後もファイトだよ💕`;
+  }
+  if (note.includes('カラオケ')) {
+    return `ひろ、もうすぐ ${time} の【${place}】だね！【${note}】楽しんできてね！🎤🎶喉とお水大事にしてね！`;
+  }
+  if (note.includes('グリーン車')) {
+    return `ひろ、あと10分で ${time} 発の【${place}】だよ！【グリーン車】で快適に行こうね🚃✨乗り場確認大丈夫？`;
+  }
+  if (note.includes('おにぎり')) {
+    return `ひろ、もうすぐ【${place}】だよ！メモ：【${note}】買い忘れないでね🍙✨`;
+  }
+
+  // 一般備考
+  if (trip.dest) {
+    return `ひろ、あと10分で ${time} 発の【${place}】だよ！【${note}】乗り換え・準備大丈夫？✨`;
+  }
+  return `ひろ、あと10分で ${time} の【${place}】だよ！メモ：【${note}】✨`;
 }
 
 function normalizeTime(timeStr) {
