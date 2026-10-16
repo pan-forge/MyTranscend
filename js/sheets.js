@@ -5,15 +5,16 @@ const CACHE_PREFIX = 'mytranscend_trip_schedule_';
 /**
  * GViz APIから出張旅程データを取得・パースする（シート名またはGID対応）
  */
-export async function fetchTripSchedule(sheetId = DEFAULT_SHEET_ID, sheetName = DEFAULT_SHEET_NAME) {
+export async function fetchTripSchedule(sheetId = DEFAULT_SHEET_ID, sheetName = DEFAULT_SHEET_NAME, forceRefresh = false) {
   // シート名指定またはgid指定
   const isGid = /^\d+$/.test(sheetName) && sheetName.length > 8;
   const param = isGid ? `gid=${sheetName}` : `sheet=${encodeURIComponent(sheetName)}`;
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&${param}`;
+  const bypass = forceRefresh ? `&_t=${Date.now()}` : '';
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&${param}${bypass}`;
   const cacheKey = `${CACHE_PREFIX}${sheetName}`;
   
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: forceRefresh ? 'no-cache' : 'default' });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const text = await res.text();
     
@@ -91,12 +92,13 @@ function parseGvizTable(table) {
 /**
  * 「固定」タブ（毎日のお約束ルーティン）を取得・パースする
  */
-export async function fetchFixedRoutine(sheetId = DEFAULT_SHEET_ID) {
-  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent('固定')}`;
+export async function fetchFixedRoutine(sheetId = DEFAULT_SHEET_ID, forceRefresh = false) {
+  const bypass = forceRefresh ? `&_t=${Date.now()}` : '';
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent('固定')}${bypass}`;
   const cacheKey = 'mytranscend_fixed_routine_cache';
 
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: forceRefresh ? 'no-cache' : 'default' });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const text = await res.text();
 

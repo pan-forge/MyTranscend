@@ -1,7 +1,7 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule } from './sheets.js?v=1.1';
-import { sendChatMessage } from './gemini.js?v=1.1';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.1';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule } from './sheets.js?v=1.2';
+import { sendChatMessage } from './gemini.js?v=1.2';
+import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.2';
 
 // デフォルトAPIキー（VoiceChat連携用）
 const DEFAULT_API_KEY = 'AIzaSyB4kww5tDamxQHW6H4_WLDnMC47qEEQFxE';
@@ -16,6 +16,7 @@ const tabRice = document.getElementById('tabRice');
 const scheduleBanner = document.getElementById('scheduleBanner');
 const scheduleText = document.getElementById('scheduleText');
 const sheetTabSelect = document.getElementById('sheetTabSelect');
+const btnSyncSheets = document.getElementById('btnSyncSheets');
 const btnTestNotify = document.getElementById('btnTestNotify');
 const chatContainer = document.getElementById('chatContainer');
 const chatInput = document.getElementById('chatInput');
@@ -120,7 +121,23 @@ function setupEventListeners() {
   sheetTabSelect.addEventListener('change', async (e) => {
     currentSheetTab = e.target.value;
     localStorage.setItem('mytranscend_sheet_tab', currentSheetTab);
-    await loadSchedule();
+    await loadSchedule(true);
+  });
+
+  // スプシ最新状態の強制同期ボタン
+  btnSyncSheets.addEventListener('click', async () => {
+    btnSyncSheets.disabled = true;
+    const origText = btnSyncSheets.textContent;
+    btnSyncSheets.textContent = '⏳ 同期中...';
+    try {
+      await loadSchedule(true);
+      alert('スプシを最新状態に更新したよ、ひろ💕');
+    } catch (err) {
+      alert(`スプシ更新に失敗しちゃった💦 (${err.message})`);
+    } finally {
+      btnSyncSheets.disabled = false;
+      btnSyncSheets.textContent = origText;
+    }
   });
 
   // 通知テストボタン
@@ -171,15 +188,15 @@ function update2DAvatar() {
 }
 
 // スプシ旅程 ＆ 固定ルーティン読み込み
-async function loadSchedule() {
+async function loadSchedule(forceRefresh = false) {
   try {
     scheduleText.textContent = `[${currentSheetTab}] 読み込み中...`;
     const sheetId = sheetIdInput?.value.trim() || undefined;
 
-    // 出張旅程と固定ルーティンを並行取得
+    // 出張旅程と固定ルーティンを並行取得（キャッシュ強制バイパス対応）
     const [trips, routines] = await Promise.all([
-      fetchTripSchedule(sheetId, currentSheetTab),
-      fetchFixedRoutine(sheetId)
+      fetchTripSchedule(sheetId, currentSheetTab, forceRefresh),
+      fetchFixedRoutine(sheetId, forceRefresh)
     ]);
 
     tripSchedules = trips;
