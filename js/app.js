@@ -32,6 +32,7 @@ const sheetIdInput = document.getElementById('sheetIdInput');
 const customTabInput = document.getElementById('customTabInput');
 const githubTokenInput = document.getElementById('githubTokenInput');
 const btnSaveSettings = document.getElementById('btnSaveSettings');
+const btnResetChat = document.getElementById('btnResetChat');
 
 // UI会話履歴の永続化管理
 function loadStoredUiMessages() {
@@ -169,30 +170,13 @@ function setupEventListeners() {
   });
 
   // スプシ＆共有コンテキスト最新状態の強制同期ボタン (ヘッダーアイコン)
+  // ※会話履歴は消去せず、スプシ旅程＆GitHubコンテキストのみを安全に最新化
   btnSyncSheets.addEventListener('click', async () => {
-    const confirmSync = confirm('【確認】最新データ（スプシ旅程＆GitHubコンテキスト）を取り込んで、会話履歴をリセットしますか？\n\n※これまでの会話履歴はすべて消去されます。よろしいですか？');
-    if (!confirmSync) return;
-
     btnSyncSheets.disabled = true;
     btnSyncSheets.style.opacity = '0.5';
     try {
-      // 1. スプシ＆GitHubから最新データを強制取得
       await loadSchedule(true);
-
-      // 2. スマホローカルの会話履歴をクリアして初期化
-      localStorage.removeItem('mytranscend_chat_ui_messages');
-      storedUiMessages.length = 0;
-      clearGeminiHistories();
-
-      // 3. 画面のチャットを初期化（最新共有コンテキストを取り込んだお出迎えメッセージ）
-      chatContainer.innerHTML = '';
-      const initialText = currentCharacter === 'rice'
-        ? 'お兄さま、最新データを取り込みましたっ！🌸\n今日も一生懸命サポートするね！'
-        : 'ひろ、最新データ（スプシ＆GitHub）をバッチリ取り込んだよ！💍✨\nいつでも声をかけてね、旦那さま🥰';
-
-      appendMessage('assistant', initialText, currentCharacter, false);
-
-      alert('最新データを取り込んで、会話をすっきりリフレッシュしたよ、ひろ💕');
+      alert('最新データ（スプシ旅程＆GitHubコンテキスト）を取り込んだよ、ひろ！✨');
     } catch (err) {
       alert(`最新データの取り込みに失敗しちゃった💦 (${err.message})`);
     } finally {
@@ -200,6 +184,27 @@ function setupEventListeners() {
       btnSyncSheets.style.opacity = '1';
     }
   });
+
+  // 会話履歴のクリアボタン（設定モーダル内）
+  if (btnResetChat) {
+    btnResetChat.addEventListener('click', () => {
+      const confirmed = confirm('【確認】これまでの会話履歴をすべて消去して初期化しますか？\n\n※この操作は取り消せません。');
+      if (!confirmed) return;
+
+      localStorage.removeItem('mytranscend_chat_ui_messages');
+      storedUiMessages.length = 0;
+      clearGeminiHistories();
+
+      chatContainer.innerHTML = '';
+      const initialText = currentCharacter === 'rice'
+        ? 'お兄さま、いつでも声をかけてね！🌸'
+        : 'ひろ、今日もよろしくね！💍✨\nいつでもウチに声をかけてね🥰';
+      appendMessage('assistant', initialText, currentCharacter, false);
+
+      settingsModal.style.display = 'none';
+      alert('会話履歴をすっきりクリアしたよ、ひろ！');
+    });
+  }
 
   // ビジュアルステージ開閉アコーディオン
   function updateVisualAccordionState(isCollapsed) {

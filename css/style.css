@@ -520,3 +520,21 @@ model-viewer {
   font-weight: 700;
   cursor: pointer;
 }
+
+.modal-danger-btn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.modal-danger-btn:active {
+  background: rgba(239, 68, 68, 0.3);
+  transform: scale(0.98);
+}
+
