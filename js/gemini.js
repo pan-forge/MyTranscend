@@ -1,6 +1,6 @@
 // js/gemini.js - Google Gemini API 直接通信クライアント
 
-const GEMINI_MODELS = ['gemini-3.8-flash'];
+const GEMINI_MODELS = ['gemini-3.8-flash', 'gemini-2.5-flash'];
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 // キャラクターごとの会話履歴（LocalStorageから自動復元）
