@@ -305,3 +305,48 @@ function normalizeTime(timeStr) {
   if (parts.length !== 2) return timeStr;
   return String(parts[0]).padStart(2, '0') + ':' + String(parts[1]).padStart(2, '0');
 }
+
+/**
+ * 指定した出張シートのセルA1（例: "東京出張"）を取得する
+ */
+export async function fetchTabTitle(sheetId = DEFAULT_SHEET_ID, sheetName = DEFAULT_SHEET_NAME, forceRefresh = false) {
+  const cacheKey = `mytranscend_tab_title_${sheetName}`;
+  if (!forceRefresh) {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return cached;
+  }
+
+  const bypass = forceRefresh ? `&_t=${Date.now()}` : '';
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&range=A1:A1&headers=0${bypass}`;
+
+  try {
+    const res = await fetch(url, { cache: forceRefresh ? 'no-cache' : 'default' });
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const text = await res.text();
+    const jsonStr = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+    const data = JSON.parse(jsonStr);
+    const val = data?.table?.rows?.[0]?.c?.[0]?.v || '';
+    if (val) {
+      const trimmed = String(val).trim();
+      localStorage.setItem(cacheKey, trimmed);
+      return trimmed;
+    }
+  } catch (err) {
+    console.warn(`[Sheets] Failed to fetch A1 for ${sheetName}:`, err);
+    return localStorage.getItem(cacheKey) || '';
+  }
+  return '';
+}
+
+/**
+ * シート名とセルA1文字列からドロップダウン表示ラベルを整形
+ * 例: "261022" + "東京出張" -> "26/10/22(東京出張)"
+ */
+export function formatTabOptionLabel(sheetName, a1Title = '') {
+  const m = sheetName.match(/^(\d{2})(\d{2})(\d{2})$/);
+  const datePart = m ? `${m[1]}/${m[2]}/${m[3]}` : sheetName;
+  if (a1Title) {
+    return `${datePart}(${a1Title})`;
+  }
+  return datePart;
+}

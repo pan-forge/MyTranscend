@@ -1,7 +1,7 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule } from './sheets.js?v=1.2';
-import { sendChatMessage } from './gemini.js?v=1.2';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.2';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.3';
+import { sendChatMessage } from './gemini.js?v=1.3';
+import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.3';
 
 // デフォルトAPIキー（VoiceChat連携用）
 const DEFAULT_API_KEY = 'AIzaSyB4kww5tDamxQHW6H4_WLDnMC47qEEQFxE';
@@ -58,7 +58,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   // タブ選択初期値の反映
   if (currentSheetTab) {
-    // 既存optionになければ追加
     let optionExists = false;
     for (const opt of sheetTabSelect.options) {
       if (opt.value === currentSheetTab) {
@@ -72,6 +71,9 @@ window.addEventListener('DOMContentLoaded', async () => {
       sheetTabSelect.add(newOpt);
     }
   }
+
+  // ドロップダウンの表示ラベルをA1セル情報で動的更新
+  updateTabSelectLabels(false);
 
   // イベントリスナー設定
   setupEventListeners();
@@ -187,16 +189,35 @@ function update2DAvatar() {
   }
 }
 
+// ドロップダウン各選択肢の表示ラベルをA1セルの内容で動的更新
+async function updateTabSelectLabels(forceRefresh = false) {
+  const sheetId = sheetIdInput?.value.trim() || undefined;
+  const options = Array.from(sheetTabSelect.options);
+  await Promise.all(options.map(async (opt) => {
+    const sheetName = opt.value;
+    if (!sheetName) return;
+    try {
+      const a1Title = await fetchTabTitle(sheetId, sheetName, forceRefresh);
+      if (a1Title) {
+        opt.textContent = formatTabOptionLabel(sheetName, a1Title);
+      }
+    } catch (e) {
+      console.warn(`[App] Failed to update option text for ${sheetName}:`, e);
+    }
+  }));
+}
+
 // スプシ旅程 ＆ 固定ルーティン読み込み
 async function loadSchedule(forceRefresh = false) {
   try {
     scheduleText.textContent = `[${currentSheetTab}] 読み込み中...`;
     const sheetId = sheetIdInput?.value.trim() || undefined;
 
-    // 出張旅程と固定ルーティンを並行取得（キャッシュ強制バイパス対応）
+    // 出張旅程、固定ルーティン、ドロップダウンラベル更新を並行実行（キャッシュ強制バイパス対応）
     const [trips, routines] = await Promise.all([
       fetchTripSchedule(sheetId, currentSheetTab, forceRefresh),
-      fetchFixedRoutine(sheetId, forceRefresh)
+      fetchFixedRoutine(sheetId, forceRefresh),
+      updateTabSelectLabels(forceRefresh)
     ]);
 
     tripSchedules = trips;

@@ -1,5 +1,5 @@
-// MyTranscend Service Worker v1.2
-const CACHE_NAME = 'mytranscend-v1.2';
+// MyTranscend Service Worker v1.3
+const CACHE_NAME = 'mytranscend-v1.3';
 
 // オフラインキャッシュ対象アセット
 const PRECACHE_ASSETS = [
@@ -21,7 +21,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching core assets (v1.1)');
+      console.log('[SW] Pre-caching core assets (v1.3)');
       return cache.addAll(PRECACHE_ASSETS);
     })
   );
