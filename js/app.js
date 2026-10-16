@@ -59,6 +59,44 @@ function saveUiMessage(sender, text, charType) {
   } catch (e) {
     console.warn('[App] Failed to save UI message:', e);
   }
+// 自動コンテキスト同期（CONTEXT.md自動保存）管理
+let hasUnsavedConversations = false;
+let isSyncingContext = false;
+let autoSyncTimer = null;
+
+function markConversationUnsaved() {
+  hasUnsavedConversations = true;
+}
+
+async function autoSyncContextToGitHub() {
+  const token = localStorage.getItem('mytranscend_github_token');
+  if (!token || !hasUnsavedConversations || isSyncingContext) return;
+
+  isSyncingContext = true;
+  if (btnSaveContext) {
+    btnSaveContext.style.opacity = '0.5';
+  }
+
+  try {
+    const md = formatChatHistoryToMarkdown(chatHistories);
+    await saveContextToGitHub(token, md);
+    hasUnsavedConversations = false;
+    console.log('[AutoSync] Context automatically synced to GitHub CONTEXT.md');
+  } catch (err) {
+    console.warn('[AutoSync] Background context sync error:', err);
+  } finally {
+    isSyncingContext = false;
+    if (btnSaveContext) {
+      btnSaveContext.style.opacity = '1';
+    }
+  }
+}
+
+function scheduleAutoSync(delayMs = 8000) {
+  if (autoSyncTimer) clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(() => {
+    autoSyncContextToGitHub();
+  }, delayMs);
 }
 
 // 状態管理
@@ -284,6 +322,7 @@ function setupEventListeners() {
       try {
         const md = formatChatHistoryToMarkdown(chatHistories);
         await saveContextToGitHub(token, md);
+        hasUnsavedConversations = false;
         alert('スマホでの会話ログをGitHubのCONTEXT.mdに保存したよ、ひろ💕\nPC側で git pull すればシームレスに取り込めるよ！');
       } catch (err) {
         console.error('Save context error:', err);
@@ -294,6 +333,22 @@ function setupEventListeners() {
       }
     });
   }
+
+  // アプリ（ブラウザ）から離れた時・閉じた時の自動コンテキスト保存
+  // ホーム画面に戻る、画面スリープ、タブ・アプリ切り替え、ブラウザ終了を検知
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && hasUnsavedConversations) {
+      console.log('[Lifecycle] App hidden, auto-syncing context...');
+      autoSyncContextToGitHub();
+    }
+  });
+
+  window.addEventListener('pagehide', () => {
+    if (hasUnsavedConversations) {
+      console.log('[Lifecycle] Pagehide, auto-syncing context...');
+      autoSyncContextToGitHub();
+    }
+  });
 
   // 会話履歴の画面復元（保存メッセージがあれば初期メッセージを置き換えて描画）
   if (storedUiMessages && storedUiMessages.length > 0) {
@@ -411,6 +466,7 @@ async function handleSendMessage() {
   } finally {
     isSending = false;
     btnSend.disabled = false;
+    scheduleAutoSync(); // 会話完了から8秒後に裏で自動保存
     // スマホでの予期せぬキーボード立ち上がり（画面レイアウト崩れ）を防ぐため自動focusは行わない
   }
 }
@@ -456,6 +512,7 @@ function appendMessage(sender, text, charType = 'transcend', skipSave = false) {
 
   if (!skipSave) {
     saveUiMessage(sender, text, charType);
+    markConversationUnsaved();
   }
 }
 
