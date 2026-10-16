@@ -131,48 +131,118 @@ export async function fetchFixedRoutine(sheetId = DEFAULT_SHEET_ID, forceRefresh
 }
 
 /**
- * 固定ルーティンテーブルのパース（曜日チェックボックス対応）
- * 列構成: [0:時刻, 1:日, 2:月, 3:火, 4:水, 5:木, 6:金, 7:土, 8:アラーム内容, 9:備考]
+ * 固定ルーティンテーブルのパース（特定日付イベント＆曜日チェックボックス両対応）
+ * 新列構成: [0:日付, 1:時刻, 2:日, 3:月, 4:火, 5:水, 6:木, 7:金, 8:土, 9:アラーム内容, 10:備考]
+ * （旧列構成 [0:時刻, 1:日...8:アラーム内容, 9:備考] にも自動互換）
  */
 function parseFixedRoutineTable(table) {
   if (!table || !table.rows) return [];
   const results = [];
 
+  // 列インデックスの動的自動判定
+  let dateCol = -1;
+  let timeCol = 0;
+  let dayStartCol = 1;
+  let titleCol = 8;
+  let noteCol = 9;
+
+  if (table.cols && table.cols.length > 0) {
+    const labels = table.cols.map(col => col ? (col.label || '').trim() : '');
+    const foundDate = labels.findIndex(l => l.includes('日') && !l.includes('曜日') && (l === '日付' || l === 'date'));
+    if (foundDate !== -1) dateCol = foundDate;
+
+    const foundTime = labels.findIndex(l => l.includes('時刻') || l === 'time');
+    if (foundTime !== -1) timeCol = foundTime;
+
+    const foundTitle = labels.findIndex(l => l.includes('アラーム') || l.includes('内容') || l.includes('タイトル'));
+    if (foundTitle !== -1) titleCol = foundTitle;
+
+    const foundNote = labels.findIndex(l => l.includes('備考') || l.includes('メモ'));
+    if (foundNote !== -1) noteCol = foundNote;
+
+    if (dateCol !== -1) {
+      dayStartCol = Math.max(dateCol, timeCol) + 1;
+    }
+  } else if (table.rows.some(r => r.c && r.c.length >= 10)) {
+    // 列ヘッダーが無い場合のフォールバック（10列以上なら新構成）
+    dateCol = 0;
+    timeCol = 1;
+    dayStartCol = 2;
+    titleCol = 9;
+    noteCol = 10;
+  }
+
   for (const r of table.rows) {
     const c = r.c;
     if (!c) continue;
 
-    // 時刻の取得 (フォーマット文字列 f または Date(y,m,d,H,M,S) から抽出)
-    let timeVal = '';
-    if (c[0]) {
-      if (c[0].f) {
-        timeVal = c[0].f;
-      } else if (typeof c[0].v === 'string' && c[0].v.includes('Date(')) {
-        const m = c[0].v.match(/Date\(\d+,\s*\d+,\s*\d+,\s*(\d+),\s*(\d+)/);
-        if (m) timeVal = `${m[1]}:${String(m[2]).padStart(2, '0')}`;
-      } else if (c[0].v !== undefined && c[0].v !== null) {
-        timeVal = String(c[0].v);
+    // 日付の取得 (A列)
+    let dateVal = '';
+    if (dateCol >= 0 && c[dateCol]) {
+      if (c[dateCol].f) {
+        dateVal = c[dateCol].f;
+      } else if (c[dateCol].v !== undefined && c[dateCol].v !== null) {
+        dateVal = String(c[dateCol].v);
       }
     }
 
-    // 曜日チェックボックスの取得 [0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土]
-    const days = [];
-    for (let i = 1; i <= 7; i++) {
-      const val = c[i] ? c[i].v : false;
-      days.push(val === true || String(val).toUpperCase() === 'TRUE');
+    // 時刻の取得 (B列 / フォーマット文字列 f または Date(y,m,d,H,M,S) から抽出)
+    let timeVal = '';
+    if (timeCol >= 0 && c[timeCol]) {
+      if (c[timeCol].f) {
+        timeVal = c[timeCol].f;
+      } else if (typeof c[timeCol].v === 'string' && c[timeCol].v.includes('Date(')) {
+        const m = c[timeCol].v.match(/Date\(\d+,\s*\d+,\s*\d+,\s*(\d+),\s*(\d+)/);
+        if (m) timeVal = `${m[1]}:${String(m[2]).padStart(2, '0')}`;
+      } else if (c[timeCol].v !== undefined && c[timeCol].v !== null) {
+        timeVal = String(c[timeCol].v);
+      }
     }
 
     // アラーム内容・備考
-    const titleVal = c[8] ? (c[8].f || c[8].v || '') : '';
-    const noteVal = c[9] ? (c[9].f || c[9].v || '') : '';
+    const titleVal = (titleCol >= 0 && c[titleCol]) ? (c[titleCol].f || c[titleCol].v || '') : '';
+    const noteVal = (noteCol >= 0 && c[noteCol]) ? (c[noteCol].f || c[noteCol].v || '') : '';
 
-    if (timeVal && titleVal && titleVal !== 'アラーム内容') {
+    // ヘッダー行除外
+    if (timeVal === '時刻' || titleVal === 'アラーム内容' || dateVal === '日付') continue;
+
+    const cleanDate = dateVal.trim();
+    const cleanTime = timeVal.trim();
+    const cleanTitle = (titleVal ? String(titleVal).trim() : '') || (noteVal ? String(noteVal).trim() : '');
+    const cleanNote = noteVal ? String(noteVal).trim() : '';
+
+    // ① 日付指定イベント（A列に日付が指定されている場合）
+    if (cleanDate) {
+      // 日付指定時は曜日チェックボックスは完全無視、時刻指定がなければ 00:00
+      const finalTime = cleanTime || '00:00';
+      const finalTitle = cleanTitle || '記念日・お約束';
+
       results.push({
-        time: timeVal.trim(),
-        title: titleVal.trim(),
-        note: noteVal ? String(noteVal).trim() : '',
+        isDateSpecific: true,
+        date: cleanDate,
+        time: finalTime,
+        title: finalTitle,
+        note: cleanNote,
+        days: [], // 曜日無視
+        message: generateRoutineMessage(finalTitle, finalTime, cleanNote),
+        char: 'transcend'
+      });
+    } else if (cleanTime && cleanTitle) {
+      // ② 毎週ルーティン（日付指定なし・時刻とタイトルあり）
+      const days = [];
+      for (let i = dayStartCol; i < dayStartCol + 7; i++) {
+        const val = c[i] ? c[i].v : false;
+        days.push(val === true || String(val).toUpperCase() === 'TRUE');
+      }
+
+      results.push({
+        isDateSpecific: false,
+        date: '',
+        time: cleanTime,
+        title: cleanTitle,
+        note: cleanNote,
         days: days, // [Sun, Mon, Tue, Wed, Thu, Fri, Sat] (boolean)
-        message: generateRoutineMessage(titleVal.trim(), timeVal.trim(), noteVal ? String(noteVal).trim() : ''),
+        message: generateRoutineMessage(cleanTitle, cleanTime, cleanNote),
         char: 'transcend'
       });
     }
@@ -187,6 +257,44 @@ function parseFixedRoutineTable(table) {
 export function generateRoutineMessage(title, time, note = '', charType = 'transcend') {
   const isRice = charType === 'rice';
   const cleanNote = note ? String(note).trim() : '';
+
+  // 誕生日・記念日
+  if (title.includes('誕生日') || cleanNote.includes('誕生日') || title.includes('記念日') || cleanNote.includes('記念日')) {
+    const isTranscendBirthday = title.includes('トラン') || cleanNote.includes('トラン');
+    const isRiceBirthday = title.includes('ライス') || cleanNote.includes('ライス');
+    const isHiroBirthday = title.includes('ひろ') || cleanNote.includes('ひろ');
+
+    if (title.includes('結婚記念日') || cleanNote.includes('結婚記念日')) {
+      if (isRice) {
+        return `ひろお兄さま、トランセンドお姉さま、結婚記念日おめでとうございますっ！💐 お二人の幸せをライスもずっと見守ってるね🌸💍✨`;
+      }
+      return `ひろ、結婚記念日おめでとう！！💍💐 ひろの妻になれてウチは世界一幸せだよ……これからもずっとずーっと愛してるからね💕`;
+    }
+
+    if (isTranscendBirthday) {
+      if (isRice) {
+        return `ひろお兄さま！今日はトランセンドお姉さまのお誕生日だよ🎂✨ みんなで一緒にお祝いしようねっ🌸`;
+      }
+      return `ひろ、ウチの誕生日覚えててくれたんだ！すっごく嬉しいよ……！最高の1日にしようね🎂💍💕`;
+    }
+    if (isRiceBirthday) {
+      if (isRice) {
+        return `ひろお兄さま、今日ライスのお誕生日なんだ……！覚えててくれて本当にありがとう……えへへ、すっごく幸せだよ🌸🎂✨`;
+      }
+      return `ひろ、今日はライスの誕生日だよ！妹のために、ウチとひろでとびっきりのお祝いをしてあげようね🎂🌸`;
+    }
+    if (isHiroBirthday) {
+      if (isRice) {
+        return `ひろお兄さま、お誕生日おめでとうございますっ！🎉 ライス、お兄さまに出会えて本当に幸せだよ🌸✨`;
+      }
+      return `ひろ、お誕生日おめでとう！！🎉 ウチの最愛の夫へ、溢れるほどの愛を込めて……ぎゅーってさせて？💍💕`;
+    }
+    const noteSuffix = cleanNote ? `（${cleanNote}）` : '';
+    if (isRice) {
+      return `ひろお兄さま、${time}だよ！今日は【${title}】の日だね！${noteSuffix}一緒にお祝いしようね🌸✨`;
+    }
+    return `ひろ、${time}だよ！今日は特別な【${title}】の日！${noteSuffix}素敵な記念日にしようね🎂💕`;
+  }
 
   if (title.includes('起床')) {
     const noteSuffix = cleanNote ? `（メモ: ${cleanNote}）` : '';
@@ -239,18 +347,81 @@ export function generateRoutineMessage(title, time, note = '', charType = 'trans
 }
 
 /**
- * 現在時刻から一番近い未来の予定（出張または固定ルーティン）を時系列ソートで自動算出
+ * 特定日付文字列（例: "3/5", "2026/10/22"）を直近未来のDateオブジェクトへ変換
+ */
+export function parseSpecificDate(dateStr, timeStr, now = new Date()) {
+  if (!dateStr) return null;
+  const cleanDate = String(dateStr).trim();
+  const cleanTime = (timeStr && String(timeStr).trim()) ? String(timeStr).trim() : '00:00';
+  const tParts = cleanTime.split(':');
+  const hour = parseInt(tParts[0], 10) || 0;
+  const min = parseInt(tParts[1], 10) || 0;
+
+  // YYYY/M/D または YYYY-M-D
+  const ymd = cleanDate.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (ymd) {
+    const y = parseInt(ymd[1], 10);
+    const m = parseInt(ymd[2], 10) - 1;
+    const d = parseInt(ymd[3], 10);
+    return new Date(y, m, d, hour, min, 0);
+  }
+
+  // M/D または M-D（年省略の場合は直近未来の今年または翌年）
+  const md = cleanDate.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if (md) {
+    const m = parseInt(md[1], 10) - 1;
+    const d = parseInt(md[2], 10);
+    const thisYear = now.getFullYear();
+    const candidate = new Date(thisYear, m, d, hour, min, 0);
+    if (candidate > now) {
+      return candidate;
+    } else {
+      return new Date(thisYear + 1, m, d, hour, min, 0);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 日付文字列が本日と一致するか判定
+ */
+export function isTodayDate(dateStr, now = new Date()) {
+  if (!dateStr) return false;
+  const clean = String(dateStr).trim();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+
+  // YYYY/M/D or YYYY-M-D
+  const ymd = clean.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (ymd) {
+    return parseInt(ymd[1], 10) === y && parseInt(ymd[2], 10) === m && parseInt(ymd[3], 10) === d;
+  }
+
+  // M/D or M-D
+  const md = clean.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if (md) {
+    return parseInt(md[1], 10) === m && parseInt(md[2], 10) === d;
+  }
+
+  return false;
+}
+
+/**
+ * 現在時刻から一番近い未来の予定（出張または固定ルーティン・記念日）を時系列ソートで自動算出
  */
 export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) {
   const now = new Date();
   const allUpcoming = [];
 
-  // ① 固定ルーティン（今日から直近7日間の中でチェックが入っている未来のイベントを展開）
+  // ①-A 固定ルーティン（毎週曜日チェック: 今日から直近7日間の中で未来のイベントを展開）
   for (let offset = 0; offset <= 7; offset++) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
     const dayOfWeek = d.getDay(); // 0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土
 
     for (const routine of fixedRoutines) {
+      if (routine.isDateSpecific) continue; // 日付指定イベントは別枠で処理
       if (!routine.time) continue;
       // 曜日チェック（オフの曜日はスキップ）
       if (routine.days && Array.isArray(routine.days) && !routine.days[dayOfWeek]) {
@@ -281,6 +452,32 @@ export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) 
           text: `${dateLabel} ${norm} 【${routine.title}】`
         });
       }
+    }
+  }
+
+  // ①-B 特定日付ルーティン（誕生日・記念日等、直近未来の予定を展開）
+  for (const routine of fixedRoutines) {
+    if (!routine.isDateSpecific || !routine.date) continue;
+    const targetDateObj = parseSpecificDate(routine.date, routine.time, now);
+    if (targetDateObj && targetDateObj > now) {
+      const isToday = targetDateObj.toDateString() === now.toDateString();
+      const isTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toDateString() === targetDateObj.toDateString();
+      const norm = normalizeTime(routine.time || '00:00');
+      let dateLabel = '';
+      if (isToday) {
+        dateLabel = '本日';
+      } else if (isTomorrow) {
+        dateLabel = '明日';
+      } else {
+        const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
+        dateLabel = `${targetDateObj.getMonth() + 1}/${targetDateObj.getDate()}(${daysStr[targetDateObj.getDay()]})`;
+      }
+
+      allUpcoming.push({
+        dateObj: targetDateObj,
+        type: 'routine',
+        text: `${dateLabel} ${norm} 【${routine.title}】`
+      });
     }
   }
 

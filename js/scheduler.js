@@ -1,5 +1,5 @@
 // js/scheduler.js - スケジュール連動＆プッシュ通知スケジューラー（Capacitor Native Local Notifications & Web Notification 両対応）
-import { generateRoutineMessage, parseTripDate } from './sheets.js';
+import { generateRoutineMessage, parseTripDate, parseSpecificDate, isTodayDate } from './sheets.js';
 
 const NOTIFIED_CACHE_KEY = 'mytranscend_notified_history';
 
@@ -169,13 +169,15 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
     const now = new Date();
     const notificationsToSchedule = [];
 
-    // ① 固定ルーティン（今日〜7日間先までを予約）
+    // ① 固定ルーティン
+    // 1-A. 毎週ルーティン（今日〜7日間先までを予約）
     for (let offset = 0; offset <= 7; offset++) {
       const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
       const dayOfWeek = targetDate.getDay();
       const dateStr = `${targetDate.getFullYear()}/${String(targetDate.getMonth() + 1).padStart(2, '0')}/${String(targetDate.getDate()).padStart(2, '0')}`;
 
       for (const routine of fixedRoutines) {
+        if (routine.isDateSpecific) continue; // 日付指定イベントは別枠で処理
         if (!routine.time) continue;
         if (routine.days && Array.isArray(routine.days) && !routine.days[dayOfWeek]) {
           continue;
@@ -201,6 +203,31 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
             schedule: { at: scheduledTime }
           });
         }
+      }
+    }
+
+    // 1-B. 特定日付ルーティン（誕生日・記念日等、直近未来の指定日時を予約）
+    for (const routine of fixedRoutines) {
+      if (!routine.isDateSpecific || !routine.date) continue;
+      const targetDateObj = parseSpecificDate(routine.date, routine.time, now);
+      if (targetDateObj && targetDateObj > now) {
+        const normTime = normalizeTime(routine.time || '00:00');
+        const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+        const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
+        const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
+        const y = targetDateObj.getFullYear();
+        const m = String(targetDateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(targetDateObj.getDate()).padStart(2, '0');
+        const uniqueKey = `fixed_spec_${y}${m}${d}_${normTime}_${routine.title}`;
+        const id = stringToId(uniqueKey);
+
+        notificationsToSchedule.push({
+          id: id,
+          title: author,
+          body: msg,
+          iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
+          schedule: { at: targetDateObj }
+        });
       }
     }
 
@@ -300,16 +327,25 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
   // ① 毎日のお約束ルーティン（固定タブ）のチェック
   const currentDayOfWeek = now.getDay();
   for (const routine of fixedRoutines) {
-    if (!routine.time) continue;
+    const normTime = normalizeTime(routine.time || '00:00');
+    if (normTime !== currentHHMM) continue;
 
-    if (routine.days && Array.isArray(routine.days)) {
-      if (!routine.days[currentDayOfWeek]) {
+    if (routine.isDateSpecific) {
+      // 特定日付イベント（曜日チェック無視、本日日付照合）
+      if (!isTodayDate(routine.date, now)) continue;
+      const key = `fixed_spec_${todayStr}_${normTime}_${routine.title}`;
+      if (!notifiedMap[key]) {
+        const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+        const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
+        const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
+        triggerNotification(author, msg, char);
+        markNotified(key);
+      }
+    } else {
+      // 毎週ルーティン（曜日チェック）
+      if (routine.days && Array.isArray(routine.days) && !routine.days[currentDayOfWeek]) {
         continue;
       }
-    }
-
-    const normTime = normalizeTime(routine.time);
-    if (normTime === currentHHMM) {
       const key = `fixed_${todayStr}_${normTime}_${routine.title}`;
       if (!notifiedMap[key]) {
         const char = Math.random() < 0.5 ? 'transcend' : 'rice';
