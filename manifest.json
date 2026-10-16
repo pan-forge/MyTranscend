@@ -2,6 +2,7 @@
   "name": "MyTranscend - トラン＆ライスとお出かけ",
   "short_name": "MyTranscend",
   "description": "ひろとトランセンド、ライスシャワーの家族で一緒にお出かけする3D/AR対応ポータブルコンパニオンPWA",
+  "id": "/MyTranscend/",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,10 +11,22 @@
   "theme_color": "#f97316",
   "icons": [
     {
-      "src": "./assets/icons/icon_character_toggle.png",
-      "sizes": "192x192 512x512",
+      "src": "./assets/icons/icon-192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

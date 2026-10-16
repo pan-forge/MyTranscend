@@ -1,5 +1,5 @@
-// MyTranscend Service Worker v1.8
-const CACHE_NAME = 'mytranscend-v1.8';
+// MyTranscend Service Worker v1.9
+const CACHE_NAME = 'mytranscend-v1.9';
 
 // オフラインキャッシュ対象アセット
 const PRECACHE_ASSETS = [
@@ -12,6 +12,8 @@ const PRECACHE_ASSETS = [
   './js/scheduler.js',
   './js/gemini.js',
   './js/github.js',
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
   './assets/icons/icon_character_toggle.png',
   './assets/images/001-通常-トラン.png',
   './assets/images/001-通常-ライス.png'
@@ -22,7 +24,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching core assets (v1.8)');
+      console.log('[SW] Pre-caching core assets (v1.9)');
       return cache.addAll(PRECACHE_ASSETS);
     })
   );
