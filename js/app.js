@@ -424,9 +424,13 @@ async function loadSchedule(forceRefresh = false) {
     updateScheduleBanner();
 
     // スケジューラー（定期監視タイマー）を最新データで起動（毎分バナー更新も兼ねる）
-    startScheduler(tripSchedules, fixedRoutines, () => {
-      updateScheduleBanner();
-    });
+    try {
+      startScheduler(tripSchedules, fixedRoutines, () => {
+        updateScheduleBanner();
+      });
+    } catch (schedErr) {
+      console.warn('[App] Scheduler start warning:', schedErr);
+    }
   } catch (err) {
     console.error('Schedule fetch error:', err);
     scheduleText.textContent = `[${currentSheetTab}] オフラインキャッシュまたは未同期`;

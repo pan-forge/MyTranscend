@@ -6,8 +6,8 @@ const NOTIFIED_CACHE_KEY = 'mytranscend_notified_history';
  * 通知の許可状態を確認・リクエスト
  */
 export async function requestNotificationPermission() {
-  if (!('Notification' in window)) {
-    alert('お使いのブラウザはWeb通知に対応していません💦');
+  if (typeof Notification === 'undefined') {
+    alert('お使いの環境はWeb通知に対応していません💦');
     return false;
   }
 
@@ -20,7 +20,7 @@ export async function requestNotificationPermission() {
     return permission === 'granted';
   }
 
-  alert('通知がブロックされています。スマホのブラウザ設定から通知を許可してね！');
+  alert('通知がブロックされています。設定から通知を許可してね！');
   return false;
 }
 
@@ -28,6 +28,11 @@ export async function requestNotificationPermission() {
  * プッシュ通知を送信（Service Worker優先）
  */
 export async function triggerNotification(title, body, charType = 'transcend') {
+  if (typeof Notification === 'undefined') {
+    console.warn('[Scheduler] Notification API is not supported in this environment');
+    return;
+  }
+
   const isRice = charType === 'rice';
   const icon = isRice ? './assets/images/001-通常-ライス.png' : './assets/images/001-通常-トラン.png';
 
@@ -44,7 +49,7 @@ export async function triggerNotification(title, body, charType = 'transcend') {
   try {
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.ready;
-      if (reg.showNotification) {
+      if (reg && reg.showNotification) {
         await reg.showNotification(title, options);
         return;
       }
@@ -53,8 +58,11 @@ export async function triggerNotification(title, body, charType = 'transcend') {
     new Notification(title, options);
   } catch (err) {
     console.warn('[Scheduler] Notification trigger error:', err);
-    // フォールバック
-    new Notification(title, options);
+    try {
+      new Notification(title, options);
+    } catch (e) {
+      // 握りつぶす
+    }
   }
 }
 
@@ -95,7 +103,7 @@ export function startScheduler(tripSchedules = [], fixedRoutines = [], onTickCal
  * スケジュール照合 ＆ 通知実行
  */
 function checkAndNotify(tripSchedules, fixedRoutines) {
-  if (Notification.permission !== 'granted') return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
 
   const now = new Date();
   const currentHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
