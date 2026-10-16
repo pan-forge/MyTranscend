@@ -170,7 +170,7 @@ function setupEventListeners() {
 
   // スプシ＆共有コンテキスト最新状態の強制同期ボタン (ヘッダーアイコン)
   btnSyncSheets.addEventListener('click', async () => {
-    const confirmSync = confirm('最新データ（スプシ旅程＆GitHubコンテキスト）を取り込んで、スマホの会話画面を最新状態にリフレッシュする？💕');
+    const confirmSync = confirm('【確認】最新データ（スプシ旅程＆GitHubコンテキスト）を取り込んで、会話履歴をリセットしますか？\n\n※これまでの会話履歴はすべて消去されます。よろしいですか？');
     if (!confirmSync) return;
 
     btnSyncSheets.disabled = true;
