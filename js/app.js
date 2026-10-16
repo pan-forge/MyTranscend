@@ -1,7 +1,7 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule } from './sheets.js';
-import { sendChatMessage } from './gemini.js';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule } from './sheets.js?v=1.1';
+import { sendChatMessage } from './gemini.js?v=1.1';
+import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.1';
 
 // デフォルトAPIキー（VoiceChat連携用）
 const DEFAULT_API_KEY = 'AIzaSyB4kww5tDamxQHW6H4_WLDnMC47qEEQFxE';

@@ -1,5 +1,5 @@
-// MyTranscend Service Worker
-const CACHE_NAME = 'mytranscend-v1.0';
+// MyTranscend Service Worker v1.1
+const CACHE_NAME = 'mytranscend-v1.1';
 
 // オフラインキャッシュ対象アセット
 const PRECACHE_ASSETS = [
@@ -9,45 +9,56 @@ const PRECACHE_ASSETS = [
   './css/style.css',
   './js/app.js',
   './js/sheets.js',
+  './js/scheduler.js',
+  './js/gemini.js',
   './assets/icons/icon_character_toggle.png',
   './assets/images/001-通常-トラン.png',
   './assets/images/001-通常-ライス.png'
 ];
 
-// インストール時にコアアセットをキャッシュ
+// インストール時にコアアセットをキャッシュ＆即時アクティベート
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching core assets');
+      console.log('[SW] Pre-caching core assets (v1.1)');
       return cache.addAll(PRECACHE_ASSETS);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// アクティベート時に古いキャッシュを整理
+// アクティベート時に古いキャッシュを完全破棄
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.filter((key) => key !== CACHE_NAME).map((key) => {
+          console.log('[SW] Deleting old cache:', key);
+          return caches.delete(key);
+        })
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// ネットワーク優先、失敗時にキャッシュから配信（Network First with Cache Fallback）
+// ネットワーク優先（Network First with Cache Fallback）
 self.addEventListener('fetch', (event) => {
-  // 外部API (Gemini, Google GViz, CDN) はキャッシュに直撃させず直接通信
-  if (event.request.url.includes('googleapis.com') || event.request.url.includes('google.com') || event.request.url.includes('ajax.googleapis.com')) {
+  // 外部API (Google Sheets, Gemini, CDN) はキャッシュさせず直接通信
+  if (
+    event.request.url.includes('googleapis.com') ||
+    event.request.url.includes('google.com') ||
+    event.request.url.includes('ajax.googleapis.com')
+  ) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
     );
     return;
   }
 
+  // 常に最新のネットワークを取得し、失敗した場合のみキャッシュへ
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -55,10 +66,8 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => cachedResponse);
-
-      return cachedResponse || fetchPromise;
-    })
+      })
+      .catch(() => caches.match(event.request))
   );
 });
 
