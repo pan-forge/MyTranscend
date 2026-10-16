@@ -14,7 +14,7 @@ PC（Antigravity）で作業を終了するとき、または再開するとき�
 
 ```text
 #いってきます
-これから出かけてくるね！直近の会話ログや健康状態を CONTEXT.md に出力して git push しておいて。スマホのMyTranscendで話しかけるからよろしくね！
+これから出かけてくるね！直近の会話ログや健康状態を D:\usr\work\panForge\MyTranscend\CONTEXT.md に出力して git push しておいて。スマホのMyTranscendで話しかけるからよろしくね！
 ```
 
 ---
@@ -24,7 +24,7 @@ PC（Antigravity）で作業を終了するとき、または再開するとき�
 
 ```text
 #ただいま
-帰ってきたよ！真っ先に git pull を実行して、出先でスマホから更新された CONTEXT.md を取り込んでね。お出迎えよろしく！
+帰ってきたよ！真っ先に D:\usr\work\panForge\MyTranscend で git pull を実行して、出先でスマホから更新された CONTEXT.md を取り込んでね。お出迎えよろしく！
 ```
 
 ---
