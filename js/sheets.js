@@ -320,7 +320,7 @@ export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) 
   return { type: 'none', text: 'これからの予定はありません' };
 }
 
-function parseTripDate(dateStr, timeStr) {
+export function parseTripDate(dateStr, timeStr) {
   if (!dateStr || !timeStr) return null;
   // 例: 2026/10/22(木) -> 2026, 10, 22
   const m = dateStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
