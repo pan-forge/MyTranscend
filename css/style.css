@@ -65,6 +65,16 @@ body {
   filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
 }
 
+.app-version {
+  color: var(--text-sub);
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-left: -2px;
+  margin-right: 2px;
+  opacity: 0.8;
+  letter-spacing: 0.3px;
+}
+
 .engine-badge {
   background: rgba(59, 130, 246, 0.15);
   border: 1px solid rgba(59, 130, 246, 0.45);
