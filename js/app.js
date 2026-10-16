@@ -1,8 +1,8 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.5';
-import { sendChatMessage, chatHistories } from './gemini.js?v=1.5';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.5';
-import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.5';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.6';
+import { sendChatMessage, chatHistories } from './gemini.js?v=1.6';
+import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.6';
+import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.6';
 
 // DOM要素
 const modelViewer = document.getElementById('modelViewer');
