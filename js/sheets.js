@@ -199,55 +199,76 @@ function generateRoutineMessage(title, time, note) {
 }
 
 /**
- * 現在時刻から一番近い未来の予定（出張または固定ルーティン）を自動算出
+ * 現在時刻から一番近い未来の予定（出張または固定ルーティン）を時系列ソートで自動算出
  */
 export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) {
   const now = new Date();
-  const currentHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-  const todayDayOfWeek = now.getDay(); // 0:日〜6:土
+  const allUpcoming = [];
 
-  // ① 出張予定（現在時刻より未来の直近イベント）
+  // ① 固定ルーティン（今日から直近7日間の中でチェックが入っている未来のイベントを展開）
+  for (let offset = 0; offset <= 7; offset++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    const dayOfWeek = d.getDay(); // 0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土
+
+    for (const routine of fixedRoutines) {
+      if (!routine.time) continue;
+      // 曜日チェック（オフの曜日はスキップ）
+      if (routine.days && Array.isArray(routine.days) && !routine.days[dayOfWeek]) {
+        continue;
+      }
+
+      const norm = normalizeTime(routine.time);
+      const parts = norm.split(':');
+      if (parts.length !== 2) continue;
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+
+      const eventDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0);
+      if (eventDate > now) {
+        let dateLabel = '';
+        if (offset === 0) {
+          dateLabel = '本日';
+        } else if (offset === 1) {
+          dateLabel = '明日';
+        } else {
+          const daysStr = ['日', '月', '火', '水', '木', '金', '土'];
+          dateLabel = `${d.getMonth() + 1}/${d.getDate()}(${daysStr[dayOfWeek]})`;
+        }
+
+        allUpcoming.push({
+          dateObj: eventDate,
+          type: 'routine',
+          text: `${dateLabel} ${norm} 【${routine.title}】`
+        });
+      }
+    }
+  }
+
+  // ② 出張旅程（現在時刻より未来の移動・到着イベントを展開）
   for (const trip of tripSchedules) {
     if (!trip.depTime && !trip.arrTime) continue;
     const tripDateObj = parseTripDate(trip.date, trip.depTime || trip.arrTime);
     if (tripDateObj && tripDateObj > now) {
       const isToday = tripDateObj.toDateString() === now.toDateString();
-      const prefix = isToday ? '本日' : trip.date;
-      return {
+      const isTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toDateString() === tripDateObj.toDateString();
+      const dateLabel = isToday ? '本日' : (isTomorrow ? '明日' : trip.date);
+
+      allUpcoming.push({
+        dateObj: tripDateObj,
         type: 'trip',
-        text: `${prefix} ${trip.depTime || trip.arrTime} ${trip.origin} ➔ ${trip.dest} (${trip.transit || '移動'})`
-      };
+        text: `${dateLabel} ${trip.depTime || trip.arrTime} ${trip.origin} ➔ ${trip.dest} (${trip.transit || '移動'})`
+      });
     }
   }
 
-  // ② 今日これからの固定ルーティン（今日チェックがあり、かつ時刻が未来のもの）
-  for (const routine of fixedRoutines) {
-    if (!routine.time) continue;
-    if (routine.days && Array.isArray(routine.days) && !routine.days[todayDayOfWeek]) {
-      continue;
-    }
-    const norm = normalizeTime(routine.time);
-    if (norm > currentHHMM) {
-      return {
-        type: 'routine',
-        text: `本日 ${norm} 【${routine.title}】`
-      };
-    }
+  // ③ 全イベントを日時順（昇順）にソート！
+  allUpcoming.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
+
+  if (allUpcoming.length > 0) {
+    return allUpcoming[0];
   }
 
-  // ③ 明日以降の固定ルーティン（次の朝一番のアラーム）
-  const nextDay = (todayDayOfWeek + 1) % 7;
-  for (const routine of fixedRoutines) {
-    if (!routine.time) continue;
-    if (routine.days && Array.isArray(routine.days) && routine.days[nextDay]) {
-      return {
-        type: 'routine',
-        text: `明日 ${routine.time} 【${routine.title}】`
-      };
-    }
-  }
-
-  // ④ フォールバック：出張の先頭予定
+  // フォールバック（出張先頭）
   if (tripSchedules && tripSchedules.length > 0) {
     const first = tripSchedules[0];
     return {
