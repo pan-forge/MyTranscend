@@ -1,6 +1,6 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
 import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.8';
-import { sendChatMessage, chatHistories, clearGeminiHistories } from './gemini.js?v=2.3';
+import { sendChatMessage, chatHistories, clearGeminiHistories } from './gemini.js?v=2.4';
 import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.8';
 import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.8';
 
@@ -32,7 +32,6 @@ const sheetIdInput = document.getElementById('sheetIdInput');
 const customTabInput = document.getElementById('customTabInput');
 const githubTokenInput = document.getElementById('githubTokenInput');
 const btnSaveSettings = document.getElementById('btnSaveSettings');
-const btnResetChat = document.getElementById('btnResetChat');
 
 // UI会話履歴の永続化管理
 function loadStoredUiMessages() {
@@ -69,38 +68,6 @@ let tripSchedules = [];
 let fixedRoutines = [];
 let sharedContext = '';
 let isSending = false;
-
-// PWA インストール制御 (beforeinstallprompt)
-let deferredInstallPrompt = null;
-const btnModalInstallApp = document.getElementById('btnModalInstallApp');
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  console.log('[PWA] beforeinstallprompt captured!');
-});
-
-async function triggerPwaInstall() {
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    const { outcome } = await deferredInstallPrompt.userChoice;
-    console.log('[PWA] User choice:', outcome);
-    if (outcome === 'accepted') {
-      deferredInstallPrompt = null;
-    }
-  } else {
-    alert('現在ブラウザがインストール準備中、または既にインストールされています。\nChrome右上のメニュー（︙）の「アプリをインストール」もお試しください。');
-  }
-}
-
-if (btnModalInstallApp) {
-  btnModalInstallApp.addEventListener('click', triggerPwaInstall);
-}
-
-window.addEventListener('appinstalled', () => {
-  console.log('[PWA] Application successfully installed!');
-  deferredInstallPrompt = null;
-});
 
 // PWA Service Worker 登録
 if ('serviceWorker' in navigator) {
@@ -203,11 +170,29 @@ function setupEventListeners() {
 
   // スプシ＆共有コンテキスト最新状態の強制同期ボタン (ヘッダーアイコン)
   btnSyncSheets.addEventListener('click', async () => {
+    const confirmSync = confirm('最新データ（スプシ旅程＆GitHubコンテキスト）を取り込んで、スマホの会話画面を最新状態にリフレッシュする？💕');
+    if (!confirmSync) return;
+
     btnSyncSheets.disabled = true;
     btnSyncSheets.style.opacity = '0.5';
     try {
+      // 1. スプシ＆GitHubから最新データを強制取得
       await loadSchedule(true);
-      alert('最新データ（スプシ＆共有コンテキスト）を取り込んだよ、ひろ💕');
+
+      // 2. スマホローカルの会話履歴をクリアして初期化
+      localStorage.removeItem('mytranscend_chat_ui_messages');
+      storedUiMessages.length = 0;
+      clearGeminiHistories();
+
+      // 3. 画面のチャットを初期化（最新共有コンテキストを取り込んだお出迎えメッセージ）
+      chatContainer.innerHTML = '';
+      const initialText = currentCharacter === 'rice'
+        ? 'お兄さま、最新データを取り込みましたっ！🌸\n今日も一生懸命サポートするね！'
+        : 'ひろ、最新データ（スプシ＆GitHub）をバッチリ取り込んだよ！💍✨\nいつでも声をかけてね、旦那さま🥰';
+
+      appendMessage('assistant', initialText, currentCharacter, false);
+
+      alert('最新データを取り込んで、会話をすっきりリフレッシュしたよ、ひろ💕');
     } catch (err) {
       alert(`最新データの取り込みに失敗しちゃった💦 (${err.message})`);
     } finally {
@@ -310,17 +295,6 @@ function setupEventListeners() {
     chatContainer.innerHTML = '';
     storedUiMessages.forEach(m => {
       appendMessage(m.sender, m.text, m.charType, true);
-    });
-  }
-
-  // 会話履歴クリアボタン
-  if (btnResetChat) {
-    btnResetChat.addEventListener('click', () => {
-      if (confirm('スマホ内の会話履歴をすべて消去して初期状態に戻す？\n（※GitHubに保存されたログは消えません）')) {
-        localStorage.removeItem('mytranscend_chat_ui_messages');
-        clearGeminiHistories();
-        location.reload();
-      }
     });
   }
 }
