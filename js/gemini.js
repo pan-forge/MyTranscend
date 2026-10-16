@@ -99,50 +99,69 @@ export async function sendChatMessage(apiKey, character, userMessage, tripSchedu
     history.splice(0, history.length - 20);
   }
 
-  // モデル試行（2.5-flash ➔ 1.5-flash フォールバック）
+  // 最大リトライ回数と待機時間
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY_MS = 1500;
+
   let lastError = null;
   for (const model of GEMINI_MODELS) {
-    try {
-      const endpoint = `${API_BASE}${model}:generateContent?key=${apiKey}`;
-      const payload = {
-        systemInstruction: {
-          parts: [{ text: systemInstruction }]
-        },
-        contents: history,
-        generationConfig: {
-          temperature: 0.85,
-          maxOutputTokens: 1500
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(`[Gemini] Retrying ${model} (attempt ${attempt + 1}/${MAX_RETRIES + 1}) after ${RETRY_DELAY_MS * attempt}ms...`);
+          await new Promise(r => setTimeout(r, RETRY_DELAY_MS * attempt));
         }
-      };
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+        const endpoint = `${API_BASE}${model}:generateContent?key=${apiKey}`;
+        const payload = {
+          systemInstruction: {
+            parts: [{ text: systemInstruction }]
+          },
+          contents: history,
+          generationConfig: {
+            temperature: 0.85,
+            maxOutputTokens: 1500
+          }
+        };
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(`Gemini API Error (${res.status}): ${errorData.error?.message || res.statusText}`);
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          const errMsg = errorData.error?.message || res.statusText;
+          // 503 (High demand) または 429 (Rate limit) の場合は自動リトライ
+          if ((res.status === 503 || res.status === 429) && attempt < MAX_RETRIES) {
+            console.warn(`[Gemini] ${res.status} temporary error, auto-retrying... (${errMsg})`);
+            continue;
+          }
+          throw new Error(`Gemini API Error (${res.status}): ${errMsg}`);
+        }
+
+        const data = await res.json();
+        const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!replyText) {
+          throw new Error('EMPTY_RESPONSE');
+        }
+
+        // アシスタント返答を履歴に追加
+        history.push({
+          role: 'model',
+          parts: [{ text: replyText }]
+        });
+
+        return { reply: replyText, model: model };
+      } catch (err) {
+        lastError = err;
+        if (attempt < MAX_RETRIES && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
+          continue;
+        }
+        break;
       }
-
-      const data = await res.json();
-      const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (!replyText) {
-        throw new Error('EMPTY_RESPONSE');
-      }
-
-      // アシスタント返答を履歴に追加
-      history.push({
-        role: 'model',
-        parts: [{ text: replyText }]
-      });
-
-      return replyText;
-    } catch (err) {
-      console.warn(`[Gemini] Model ${model} failed, trying fallback:`, err);
-      lastError = err;
     }
   }
 

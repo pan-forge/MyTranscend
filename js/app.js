@@ -1,8 +1,8 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.7';
-import { sendChatMessage, chatHistories } from './gemini.js?v=1.7';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.7';
-import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.7';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.8';
+import { sendChatMessage, chatHistories } from './gemini.js?v=1.8';
+import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.8';
+import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.8';
 
 // DOM要素
 const modelViewer = document.getElementById('modelViewer');
@@ -17,6 +17,7 @@ const sheetTabSelect = document.getElementById('sheetTabSelect');
 const btnSyncSheets = document.getElementById('btnSyncSheets');
 const btnTestNotify = document.getElementById('btnTestNotify');
 const btnSaveContext = document.getElementById('btnSaveContext');
+const engineBadge = document.getElementById('engineBadge');
 const chatContainer = document.getElementById('chatContainer');
 const chatInput = document.getElementById('chatInput');
 const btnSend = document.getElementById('btnSend');
@@ -317,9 +318,10 @@ async function handleSendMessage() {
   const typingId = appendTypingIndicator(targetChar);
 
   try {
-    const reply = await sendChatMessage(apiKey, targetChar, text, tripSchedules, sharedContext);
+    const res = await sendChatMessage(apiKey, targetChar, text, tripSchedules, sharedContext);
     removeTypingIndicator(typingId);
-    appendMessage('assistant', reply, targetChar);
+    appendMessage('assistant', res.reply, targetChar);
+    updateEngineBadge(res.model);
   } catch (err) {
     console.error('Chat error:', err);
     removeTypingIndicator(typingId);
@@ -332,6 +334,19 @@ async function handleSendMessage() {
     btnSend.disabled = false;
     // スマホでの予期せぬキーボード立ち上がり（画面レイアウト崩れ）を防ぐため自動focusは行わない
   }
+}
+
+// エンジン表示バッジの更新
+function updateEngineBadge(modelName) {
+  if (!engineBadge) return;
+  if (!modelName) {
+    engineBadge.textContent = '⚡ 3.8 Flash';
+    return;
+  }
+  const clean = modelName.replace('gemini-', '').replace('-latest', '').replace('-', ' ');
+  // 例: 3.8-flash -> 3.8 Flash
+  const formatted = clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  engineBadge.textContent = `⚡ ${formatted}`;
 }
 
 // メッセージUI描画

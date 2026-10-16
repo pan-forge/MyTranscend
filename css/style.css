@@ -65,6 +65,18 @@ body {
   filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.6));
 }
 
+.engine-badge {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  color: #60a5fa;
+  font-size: 0.65rem;
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
 .header-actions {
   display: flex;
   gap: 8px;
