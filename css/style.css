@@ -414,9 +414,11 @@ model-viewer {
 }
 
 .message-row.user .bubble {
-  background: linear-gradient(135deg, #f97316, #ea580c);
+  background: var(--theme-gradient);
   color: #fff;
   border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 8px var(--theme-glow);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .message-row.assistant .bubble {
