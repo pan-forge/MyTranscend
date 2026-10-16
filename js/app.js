@@ -1,7 +1,8 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.3';
-import { sendChatMessage } from './gemini.js?v=1.3';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.3';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.4';
+import { sendChatMessage, chatHistories } from './gemini.js?v=1.4';
+import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.4';
+import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.4';
 
 // デフォルトAPIキー（VoiceChat連携用）
 const DEFAULT_API_KEY = 'AIzaSyB4kww5tDamxQHW6H4_WLDnMC47qEEQFxE';
@@ -18,6 +19,7 @@ const scheduleText = document.getElementById('scheduleText');
 const sheetTabSelect = document.getElementById('sheetTabSelect');
 const btnSyncSheets = document.getElementById('btnSyncSheets');
 const btnTestNotify = document.getElementById('btnTestNotify');
+const btnSaveContext = document.getElementById('btnSaveContext');
 const chatContainer = document.getElementById('chatContainer');
 const chatInput = document.getElementById('chatInput');
 const btnSend = document.getElementById('btnSend');
@@ -27,6 +29,7 @@ const settingsModal = document.getElementById('settingsModal');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const sheetIdInput = document.getElementById('sheetIdInput');
 const customTabInput = document.getElementById('customTabInput');
+const githubTokenInput = document.getElementById('githubTokenInput');
 const btnSaveSettings = document.getElementById('btnSaveSettings');
 
 // 状態管理
@@ -35,6 +38,7 @@ let is3DMode = false;
 let currentSheetTab = localStorage.getItem('mytranscend_sheet_tab') || '261022';
 let tripSchedules = [];
 let fixedRoutines = [];
+let sharedContext = '';
 let isSending = false;
 
 // PWA Service Worker 登録
@@ -55,6 +59,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     localStorage.setItem('mytranscend_gemini_key', savedApiKey);
   }
   apiKeyInput.value = savedApiKey;
+
+  // GitHub トークン読み込み
+  if (githubTokenInput) {
+    githubTokenInput.value = localStorage.getItem('mytranscend_github_token') || '';
+  }
 
   // タブ選択初期値の反映
   if (currentSheetTab) {
@@ -78,7 +87,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   // イベントリスナー設定
   setupEventListeners();
 
-  // スプレッドシート旅程の自動取得
+  // スプレッドシート旅程 ＆ 共有コンテキストの自動取得
   await loadSchedule();
 });
 
@@ -175,9 +184,42 @@ function setupEventListeners() {
       await loadSchedule();
     }
 
+    // GitHub Token 保存
+    if (githubTokenInput) {
+      localStorage.setItem('mytranscend_github_token', githubTokenInput.value.trim());
+    }
+
     settingsModal.style.display = 'none';
     alert('設定を保存したよ、ひろ💕');
   });
+
+  // 会話ログのGitHub同期（CONTEXT.md保存）ボタン
+  if (btnSaveContext) {
+    btnSaveContext.addEventListener('click', async () => {
+      const token = localStorage.getItem('mytranscend_github_token');
+      if (!token) {
+        alert('GitHub Tokenが未設定だよ、ひろ！設定画面（⚙️）からPATを入力してね💕');
+        settingsModal.style.display = 'flex';
+        return;
+      }
+
+      btnSaveContext.disabled = true;
+      const origText = btnSaveContext.textContent;
+      btnSaveContext.textContent = '⏳';
+
+      try {
+        const md = formatChatHistoryToMarkdown(chatHistories);
+        await saveContextToGitHub(token, md);
+        alert('スマホでの会話ログをGitHubのCONTEXT.mdに保存したよ、ひろ💕\nPC側で git pull すればシームレスに取り込めるよ！');
+      } catch (err) {
+        console.error('Save context error:', err);
+        alert(`CONTEXT.mdの保存に失敗しちゃった💦 (${err.message})`);
+      } finally {
+        btnSaveContext.disabled = false;
+        btnSaveContext.textContent = origText;
+      }
+    });
+  }
 }
 
 // 2D立ち絵の画像更新
@@ -207,21 +249,23 @@ async function updateTabSelectLabels(forceRefresh = false) {
   }));
 }
 
-// スプシ旅程 ＆ 固定ルーティン読み込み
+// スプシ旅程 ＆ 固定ルーティン読み込み（CONTEXT.mdも並行取得）
 async function loadSchedule(forceRefresh = false) {
   try {
     scheduleText.textContent = `[${currentSheetTab}] 読み込み中...`;
     const sheetId = sheetIdInput?.value.trim() || undefined;
 
-    // 出張旅程、固定ルーティン、ドロップダウンラベル更新を並行実行（キャッシュ強制バイパス対応）
-    const [trips, routines] = await Promise.all([
+    // 出張旅程、固定ルーティン、ドロップダウンラベル更新、共有コンテキスト取得を並行実行
+    const [trips, routines, _, ctx] = await Promise.all([
       fetchTripSchedule(sheetId, currentSheetTab, forceRefresh),
       fetchFixedRoutine(sheetId, forceRefresh),
-      updateTabSelectLabels(forceRefresh)
+      updateTabSelectLabels(forceRefresh),
+      fetchContext(undefined, undefined, forceRefresh)
     ]);
 
     tripSchedules = trips;
     fixedRoutines = routines;
+    sharedContext = ctx || '';
 
     // 直近のこれからの予定を自動判定してバナー更新
     updateScheduleBanner();
@@ -265,7 +309,7 @@ async function handleSendMessage() {
   const typingId = appendTypingIndicator(targetChar);
 
   try {
-    const reply = await sendChatMessage(apiKey, targetChar, text, tripSchedules);
+    const reply = await sendChatMessage(apiKey, targetChar, text, tripSchedules, sharedContext);
     removeTypingIndicator(typingId);
     appendMessage('assistant', reply, targetChar);
   } catch (err) {

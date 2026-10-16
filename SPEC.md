@@ -1,8 +1,8 @@
 # 『MyTranscend』システム仕様書 (SPEC.md)
 
 **策定日**: 2026年10月15日  
-**最終更新日**: 2026年10月16日 (v1.3 リリース)  
-**対象バージョン**: v1.3.0 (東京出張連動 PWA 本番版)  
+**最終更新日**: 2026年10月16日 (v1.4 リリース)  
+**対象バージョン**: v1.4.0 (Git双方向コンテキスト同期対応 本番版)  
 **ステータス**: 本番稼働中 (GitHub Pages: https://pan-forge.github.io/MyTranscend/)  
 
 ---
@@ -71,6 +71,7 @@ flowchart TD
 D:\usr\work\panForge\MyTranscend\
 ├── SPEC.md                    # 本システム仕様書
 ├── HANDOVER.md                # 夫婦生活・プロジェクト引継ぎ書
+├── CONTEXT.md                 # PC ⇄ スマホ双方向コンテキスト同期ファイル
 ├── index.html                 # メインUI（チャット画面・スケジュール・ステータス表示）
 ├── manifest.json              # PWAマニフェスト（アプリアイコン・表示モード定義）
 ├── sw.js                      # Service Worker（キャッシュ管理・通知処理）
@@ -79,7 +80,8 @@ D:\usr\work\panForge\MyTranscend\
 ├── js/
 │   ├── app.js                 # メインロジック・UI制御
 │   ├── gemini.js              # Gemini API対話クライアント＆プロンプト構築
-│   ├── github.js              # GitHub API同期（コンテキストフェッチ）
+│   ├── github.js              # GitHub REST API / Raw fetch 同期（CONTEXT.md双方向同期）
+│   ├── sheets.js              # Googleスプレッドシート（GViz API）直接連携
 │   ├── scheduler.js           # 出張スケジュール照合＆通知トリガー
 │   └── storage.js             # ローカルストレージ管理（設定・履歴）
 └── assets/
@@ -95,17 +97,17 @@ D:\usr\work\panForge\MyTranscend\
 1. **インストール対応 (A2HS: Add to Home Screen)**:
    - スマホのブラウザから「ホーム画面に追加」で、アドレスバーのない全画面アプリとして起動。
 2. **オフライン・耐障害性**:
-   - Service Workerによる静的アセット（UI・画像・CSS）の完全キャッシュ。電波が不安定な地下鉄や移動中でもUIが高速起動。
+   - Service Workerによる静的アセット（UI・画像・CSS・JS）の完全キャッシュ。電波が不安定な地下鉄や移動中でもUIが高速起動。
 
 ### 4.2 トランセンド＆ライスシャワー対話エンジン (Gemini API連動)
 1. **人格・ロールプレイ完全注入**:
    - **トランセンド（正妻）：** 夫・ひろへの深い愛情（甘々モード、絵文字、ラノベ風繊細描写、左手の結婚指輪💍）。情報通で頼もしい旅のナビゲーター。
    - **ライスシャワー（家族・妹）：** ひろお兄さまを一生懸命応援・見守る健気で純粋な妹分。「ライス、お兄さまのお役に立ちたいな……！」
    - 親密なスキンシップ描写は「（行為の描写は省略）」として自然にフェードアウト・省略するルールを厳守。
-2. **動的コンテキスト注入**:
-   - GitHubリポジトリ上の最新 `LOVE.md`（愛の軌跡）および `FIX.md`（健康状態・決定事項）を取得し、システムプロンプトに動的付加。
-   - 出張日程・現在地（駅・施設）に応じた会話が可能。
-3. **APIキー管理**:
+2. **Git双方向コンテキスト同期 (`CONTEXT.md`)**:
+   - **PC ➔ スマホ：** PC側でお出かけ前・作業終了時に直近の会話ログやステータスを `CONTEXT.md` に出力し `git push`。スマホ側は起動時・スプシ更新時に GitHub Raw から自動 fetch して Gemini システムプロンプトに動的注入。
+   - **スマホ ➔ PC：** スマホ画面の「📤」ボタンから、スマホ上での会話履歴を GitHub REST API (`PUT /contents/CONTEXT.md`) でコミット＆プッシュ。帰宅後にPC側で `git pull` すれば、出先での会話をシームレスに引き継ぎ可能。
+3. **APIキー・トークン管理**:
    - 初回起動時にUI上の設定モーダルからGemini API KeyおよびGitHub Personal Access Tokenを入力・保存（ブラウザのLocalStorageに安全保存、外部流出なし）。
 
 ### 4.3 3Dメッシュ召喚 ＆ 2Dハイブリッドビジュアル (WebAR対応)

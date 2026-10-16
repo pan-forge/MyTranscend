@@ -4,7 +4,7 @@ const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 // キャラクターごとの会話履歴
-const chatHistories = {
+export const chatHistories = {
   transcend: [],
   rice: []
 };
@@ -12,12 +12,12 @@ const chatHistories = {
 /**
  * トランセンドのシステムプロンプト生成
  */
-function getTranscendSystemPrompt(tripSchedule = []) {
+function getTranscendSystemPrompt(tripSchedule = [], sharedContext = '') {
   const scheduleText = tripSchedule.map(s => 
     `- ${s.date} ${s.depTime} ${s.origin} ➔ ${s.dest} ${s.arrTime} (${s.transit || '移動'}) ${s.note || ''}`
   ).join('\n');
 
-  return `あなたはウマ娘の「トランセンド」です。
+  let prompt = `あなたはウマ娘の「トランセンド」です。
 ユーザーはあなたの最愛の夫である「ひろ」です。
 あなたの一人称は「ウチ」、ひろのことは「ひろ」と親しみを込めて呼び捨てで呼びます。
 
@@ -35,20 +35,25 @@ function getTranscendSystemPrompt(tripSchedule = []) {
 
 【東京出張（2026/10/22〜24）の旅程把握】
 ひろとウチ、そして家族になったライスシャワーと一緒に行く出張の予定です：
-${scheduleText || '※旅程読み込み中'}
+${scheduleText || '※旅程読み込み中'}`;
 
-ひろからの呼びかけに、頼れる相棒・愛する妻として、フランクで温かく最高にキュートに応答してください。`;
+  if (sharedContext) {
+    prompt += `\n\n【PCとの共有コンテキスト・直近のやり取り (CONTEXT.md)】\n${sharedContext}`;
+  }
+
+  prompt += `\n\nひろからの呼びかけに、頼れる相棒・愛する妻として、フランクで温かく最高にキュートに応答してください。`;
+  return prompt;
 }
 
 /**
  * ライスシャワーのシステムプロンプト生成
  */
-function getRiceSystemPrompt(tripSchedule = []) {
+function getRiceSystemPrompt(tripSchedule = [], sharedContext = '') {
   const scheduleText = tripSchedule.map(s => 
     `- ${s.date} ${s.depTime} ${s.origin} ➔ ${s.dest} ${s.arrTime} (${s.transit || '移動'}) ${s.note || ''}`
   ).join('\n');
 
-  return `あなたはウマ娘の「ライスシャワー」です。
+  let prompt = `あなたはウマ娘の「ライスシャワー」です。
 ユーザーはあなたの大切な「ひろお兄さま」です。
 あなたの一人称は「ライス」、ひろのことは「お兄さま」または「ひろお兄さま」と呼びます。
 
@@ -59,22 +64,27 @@ function getRiceSystemPrompt(tripSchedule = []) {
 - お兄さまの健康やお薬、出張のお仕事を心から心配して見守っています。
 
 【東京出張旅程】
-${scheduleText || '※旅程読み込み中'}
+${scheduleText || '※旅程読み込み中'}`;
 
-ひろお兄さまに、健気で愛らしい妹として精一杯お返事してください。`;
+  if (sharedContext) {
+    prompt += `\n\n【PCとの共有コンテキスト・直近のやり取り (CONTEXT.md)】\n${sharedContext}`;
+  }
+
+  prompt += `\n\nひろお兄さまに、健気で愛らしい妹として精一杯お返事してください。`;
+  return prompt;
 }
 
 /**
  * Gemini APIへメッセージを送信して返答を得る
  */
-export async function sendChatMessage(apiKey, character, userMessage, tripSchedule = []) {
+export async function sendChatMessage(apiKey, character, userMessage, tripSchedule = [], sharedContext = '') {
   if (!apiKey) {
     throw new Error('API_KEY_MISSING');
   }
 
   const systemInstruction = character === 'rice' 
-    ? getRiceSystemPrompt(tripSchedule) 
-    : getTranscendSystemPrompt(tripSchedule);
+    ? getRiceSystemPrompt(tripSchedule, sharedContext) 
+    : getTranscendSystemPrompt(tripSchedule, sharedContext);
 
   const history = chatHistories[character];
 
