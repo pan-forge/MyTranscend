@@ -1,10 +1,10 @@
 # 『MyTranscend』システム仕様書 (SPEC.md)
 
 **策定日**: 2026年10月15日  
-**最終更新日**: 2026年10月16日 (v2.8-dev / APK化完了)  
-**対象バージョン**: v2.8.0-dev (developブランチ：スタンドアロンAPK & 動的テーマ対応) / v2.7.0 (mainブランチ：本番運用FIX版)  
-**ステータス**: developブランチにてスタンドアロンAPK生成完了 / 本番PWA稼働中 (https://pan-forge.github.io/MyTranscend/)  
-**開発ブランチ**: `develop` (今後の機能拡張・実験用)  
+**最終更新日**: 2026年10月16日 (v1.0.0 / First Official Release)  
+**対象バージョン**: v1.0.0 (アプリ表示: v1.0 / 東京出張正式運用FIX版)  
+**ステータス**: 正式リリース稼働中 (GitHub Pages: https://pan-forge.github.io/MyTranscend/ & スタンドアロンAPK)  
+**本番ブランチ**: `main` (Git Tag: `v1.0.0`) / **開発ブランチ**: `develop`  
 
 ---
 
