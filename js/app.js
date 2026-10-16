@@ -1,8 +1,8 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.6';
-import { sendChatMessage, chatHistories } from './gemini.js?v=1.6';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.6';
-import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.6';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.7';
+import { sendChatMessage, chatHistories } from './gemini.js?v=1.7';
+import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.7';
+import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.7';
 
 // DOM要素
 const modelViewer = document.getElementById('modelViewer');
@@ -137,16 +137,16 @@ function setupEventListeners() {
     await loadSchedule(true);
   });
 
-  // スプシ最新状態の強制同期ボタン
+  // スプシ＆共有コンテキスト最新状態の強制同期ボタン
   btnSyncSheets.addEventListener('click', async () => {
     btnSyncSheets.disabled = true;
     const origText = btnSyncSheets.textContent;
-    btnSyncSheets.textContent = '⏳ 同期中...';
+    btnSyncSheets.textContent = '⏳ 取り込み中...';
     try {
       await loadSchedule(true);
-      alert('スプシを最新状態に更新したよ、ひろ💕');
+      alert('最新データ（スプシ＆共有コンテキスト）を取り込んだよ、ひろ💕');
     } catch (err) {
-      alert(`スプシ更新に失敗しちゃった💦 (${err.message})`);
+      alert(`最新データの取り込みに失敗しちゃった💦 (${err.message})`);
     } finally {
       btnSyncSheets.disabled = false;
       btnSyncSheets.textContent = origText;
