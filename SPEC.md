@@ -147,6 +147,9 @@ D:\usr\work\panForge\MyTranscend\
    - 基調カラー：ブルーローズ＆青紫（`--theme-primary: #8b5cf6`, `--theme-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6)`）。
    - ライス選択時（`activeCharacter === 'rice'`）、`body.theme-rice` クラスが付与され、ヘッダーバッジ、アクティブ枠線、アクセント要素が一括でライスの愛用カラーへシームレスに変色。
    - 選択状態は LocalStorage に保存され、次回起動時にも維持。
+3. **ユーザー（ひろ）吹き出しのリアルタイム同期：**
+   - ひろが書き込んだメッセージ吹き出し（`.message-row.user .bubble`）も `--theme-gradient` および `--theme-glow` に連動。
+   - トラン選択時はオレンジ＆レッド、ライス選択時はブルーローズ＆青紫へとリアルタイムに変化し、会話全体の一体感を強化。
 
 ### 4.6 完全スタンドアロンAndroid APK化 (Capacitor 7 / v2.8-dev)
 1. **アーキテクチャ：**
