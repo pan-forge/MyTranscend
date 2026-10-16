@@ -108,23 +108,24 @@ ${scheduleText || '※旅程読み込み中'}`;
 export function parseUnifiedResponse(replyText, fallbackChar = 'transcend') {
   if (!replyText) return [];
 
-  const regex = /(?:^|\n)\s*【?(トランセンド|ライスシャワー|トラン|ライス)】?\s*[:：]?\s*\n?/gi;
+  // 【】や[]で囲まれているか、行頭等でコロンが付いている場合のみ話者タグと認識（地の文の誤認を防止）
+  const regex = /(?:^|\n)\s*(?:【(トランセンド|ライスシャワー|トラン|ライス)】|\[(トランセンド|ライスシャワー|トラン|ライス)\]|(トランセンド|ライスシャワー|トラン|ライス)\s*[:：])\s*\n?/gi;
   const matches = [...replyText.matchAll(regex)];
 
   if (matches.length === 0) {
     return [{ character: fallbackChar, text: replyText.trim() }];
   }
 
-  const results = [];
+  const rawResults = [];
   for (let i = 0; i < matches.length; i++) {
     const currentMatch = matches[i];
-    const rawTag = currentMatch[1];
+    const rawTag = currentMatch[1] || currentMatch[2] || currentMatch[3];
     const character = rawTag.includes('ライス') ? 'rice' : 'transcend';
     const startIndex = currentMatch.index + currentMatch[0].length;
     const endIndex = (i + 1 < matches.length) ? matches[i + 1].index : replyText.length;
     const textChunk = replyText.substring(startIndex, endIndex).trim();
     if (textChunk) {
-      results.push({ character, text: textChunk });
+      rawResults.push({ character, text: textChunk });
     }
   }
 
@@ -132,11 +133,21 @@ export function parseUnifiedResponse(replyText, fallbackChar = 'transcend') {
   if (matches[0].index > 0) {
     const prefix = replyText.substring(0, matches[0].index).trim();
     if (prefix) {
-      results.unshift({ character: fallbackChar, text: prefix });
+      rawResults.unshift({ character: fallbackChar, text: prefix });
     }
   }
 
-  return results.length > 0 ? results : [{ character: fallbackChar, text: replyText.trim() }];
+  // 同一キャラクターの連続メッセージを1つの吹き出しに自動マージ（二重安全策）
+  const merged = [];
+  for (const item of rawResults) {
+    if (merged.length > 0 && merged[merged.length - 1].character === item.character) {
+      merged[merged.length - 1].text += '\n\n' + item.text;
+    } else {
+      merged.push({ ...item });
+    }
+  }
+
+  return merged.length > 0 ? merged : [{ character: fallbackChar, text: replyText.trim() }];
 }
 
 /**
