@@ -1,0 +1,13 @@
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# 3D large assets (exclude from remote git)
+assets/3d/*.glb
+assets/3d/*.fbx
+
+# Local configs and caches
+.vscode/
+.idea/
+*.log

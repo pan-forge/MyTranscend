@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>MyTranscend</title>
+  
+  <!-- PWA Settings -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#f97316">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="./assets/icons/icon_character_toggle.png">
+  
+  <!-- Google <model-viewer> (3D & WebAR) -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+
+  <!-- Style -->
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="logo-group">
+      <span class="wedding-ring">💍</span>
+      <h1 class="app-title">MyTranscend</h1>
+    </div>
+    <div class="header-actions">
+      <button id="btnSettings" class="icon-btn" title="設定">⚙️</button>
+    </div>
+  </header>
+
+  <!-- Visual Stage (3D / 2D Avatar) -->
+  <section class="visual-stage">
+    <!-- 3D Model Viewer (Hidden initially) -->
+    <model-viewer id="modelViewer" 
+                  class="hidden-stage"
+                  src="./assets/3d/Meshy_AI_Cyber_Pony_Embrace_1014142539_texture.glb" 
+                  alt="3D Transcend & Rice" 
+                  auto-rotate 
+                  camera-controls 
+                  shadow-intensity="1" 
+                  ar 
+                  ar-modes="webxr scene-viewer quick-look">
+    </model-viewer>
+
+    <!-- 2D Image Avatar (Default visible) -->
+    <img id="avatarImage" class="image-avatar" src="./assets/images/001-通常-トラン.png" alt="Avatar">
+
+    <!-- Stage Floating Controls -->
+    <div class="stage-controls">
+      <!-- 2D / 3D Mode Tabs -->
+      <div class="mode-tabs">
+        <button id="btnMode3D" class="mode-tab">3D</button>
+        <button id="btnMode2D" class="mode-tab active-mode">2D</button>
+      </div>
+
+      <!-- Character Tabs (Transcend / Rice) -->
+      <div class="char-tabs">
+        <button id="tabTranscend" class="char-tab active-transcend">トラン 💍</button>
+        <button id="tabRice" class="char-tab">ライス 🌸</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Trip Schedule Banner with 2-row layout -->
+  <div id="scheduleBanner" class="schedule-banner">
+    <div class="banner-top-row">
+      <div class="banner-badge-group">
+        <span class="badge">NEXT</span>
+        <select id="sheetTabSelect" class="tab-select" title="出張日程タブ切り替え">
+          <option value="261022">26/10/22 (東京)</option>
+          <option value="261119">26/11/19</option>
+          <option value="261217">26/12/17</option>
+          <option value="270121">27/01/21</option>
+          <option value="260917">26/09/17</option>
+        </select>
+      </div>
+      <button id="btnTestNotify" class="notify-btn" title="通知テスト">🔔 通知テスト</button>
+    </div>
+    <div class="banner-bottom-row">
+      <span id="scheduleText" class="schedule-text">旅程を同期中...</span>
+    </div>
+  </div>
+
+  <!-- Chat History Container -->
+  <main id="chatContainer" class="chat-container">
+    <!-- Initial Greeting -->
+    <div class="message-row assistant">
+      <img src="./assets/images/001-通常-トラン.png" class="msg-avatar" alt="トラン">
+      <div class="bubble">
+        <div class="bubble-author">トランセンド 💍</div>
+        ひろ、お出かけの準備はバッチリ？<br>
+        ウチとライスちゃんが、ひろの東京出張を全力でナビゲート＆サポートするからね！なんでも話しかけてね、旦那さま🥰💕
+      </div>
+    </div>
+  </main>
+
+  <!-- Input Bar -->
+  <footer class="input-bar">
+    <input type="text" id="chatInput" class="chat-input" placeholder="ひろのメッセージを入力..." autocomplete="off">
+    <button id="btnVoice" class="icon-btn" title="音声入力">🎙️</button>
+    <button id="btnSend" class="send-btn" title="送信">➤</button>
+  </footer>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-title">
+        <span>⚙️ システム設定</span>
+        <button id="btnCloseModal" class="icon-btn" style="width: 28px; height: 28px;">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label for="apiKeyInput">Google Gemini API Key:</label>
+        <input type="password" id="apiKeyInput" class="form-input" placeholder="AIzaSy...">
+        <small style="color: var(--text-sub); font-size: 0.72rem;">※ブラウザ内にのみ安全に保存されます。</small>
+      </div>
+
+      <div class="form-group">
+        <label for="sheetIdInput">出張スプレッドシート ID:</label>
+        <input type="text" id="sheetIdInput" class="form-input" value="1DHoQI7sQyGi7Qr5PuVRiLkL5Te8R9Fpp-UzBPkFWcaI">
+      </div>
+
+      <div class="form-group">
+        <label for="customTabInput">出張タブ名 (例: 261022):</label>
+        <input type="text" id="customTabInput" class="form-input" placeholder="261022">
+        <small style="color: var(--text-sub); font-size: 0.72rem;">※上記リストにない未来の出張タブも自由に入力できます。</small>
+      </div>
+
+      <button id="btnSaveSettings" class="modal-save-btn">設定を保存する</button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
