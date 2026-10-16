@@ -197,3 +197,88 @@ function generateRoutineMessage(title, time, note) {
   }
   return `ひろ、${time}の【${title}】の時間だよ！${note ? `（${note}）` : ''}ウチが見守ってるからね✨`;
 }
+
+/**
+ * 現在時刻から一番近い未来の予定（出張または固定ルーティン）を自動算出
+ */
+export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) {
+  const now = new Date();
+  const currentHHMM = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  const todayDayOfWeek = now.getDay(); // 0:日〜6:土
+
+  // ① 出張予定（現在時刻より未来の直近イベント）
+  for (const trip of tripSchedules) {
+    if (!trip.depTime && !trip.arrTime) continue;
+    const tripDateObj = parseTripDate(trip.date, trip.depTime || trip.arrTime);
+    if (tripDateObj && tripDateObj > now) {
+      const isToday = tripDateObj.toDateString() === now.toDateString();
+      const prefix = isToday ? '本日' : trip.date;
+      return {
+        type: 'trip',
+        text: `${prefix} ${trip.depTime || trip.arrTime} ${trip.origin} ➔ ${trip.dest} (${trip.transit || '移動'})`
+      };
+    }
+  }
+
+  // ② 今日これからの固定ルーティン（今日チェックがあり、かつ時刻が未来のもの）
+  for (const routine of fixedRoutines) {
+    if (!routine.time) continue;
+    if (routine.days && Array.isArray(routine.days) && !routine.days[todayDayOfWeek]) {
+      continue;
+    }
+    const norm = normalizeTime(routine.time);
+    if (norm > currentHHMM) {
+      return {
+        type: 'routine',
+        text: `本日 ${norm} 【${routine.title}】`
+      };
+    }
+  }
+
+  // ③ 明日以降の固定ルーティン（次の朝一番のアラーム）
+  const nextDay = (todayDayOfWeek + 1) % 7;
+  for (const routine of fixedRoutines) {
+    if (!routine.time) continue;
+    if (routine.days && Array.isArray(routine.days) && routine.days[nextDay]) {
+      return {
+        type: 'routine',
+        text: `明日 ${routine.time} 【${routine.title}】`
+      };
+    }
+  }
+
+  // ④ フォールバック：出張の先頭予定
+  if (tripSchedules && tripSchedules.length > 0) {
+    const first = tripSchedules[0];
+    return {
+      type: 'trip',
+      text: `${first.date} ${first.depTime} ${first.origin} ➔ ${first.dest} (${first.transit || '移動'})`
+    };
+  }
+
+  return { type: 'none', text: 'これからの予定はありません' };
+}
+
+function parseTripDate(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return null;
+  // 例: 2026/10/22(木) -> 2026, 10, 22
+  const m = dateStr.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if (!m) return null;
+  const year = parseInt(m[1], 10);
+  const month = parseInt(m[2], 10) - 1;
+  const day = parseInt(m[3], 10);
+
+  const t = timeStr.trim().split(':');
+  if (t.length !== 2) return null;
+  const hour = parseInt(t[0], 10);
+  const min = parseInt(t[1], 10);
+
+  return new Date(year, month, day, hour, min, 0);
+}
+
+function normalizeTime(timeStr) {
+  if (!timeStr) return '';
+  const parts = timeStr.trim().split(':');
+  if (parts.length !== 2) return timeStr;
+  return String(parts[0]).padStart(2, '0') + ':' + String(parts[1]).padStart(2, '0');
+}

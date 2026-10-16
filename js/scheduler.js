@@ -75,12 +75,15 @@ export async function testNotification() {
  * スケジューラータイマーの開始
  */
 let timerId = null;
-export function startScheduler(tripSchedules = [], fixedRoutines = []) {
+export function startScheduler(tripSchedules = [], fixedRoutines = [], onTickCallback = null) {
   if (timerId) clearInterval(timerId);
 
   // 1分ごとにチェック
   timerId = setInterval(() => {
     checkAndNotify(tripSchedules, fixedRoutines);
+    if (typeof onTickCallback === 'function') {
+      onTickCallback();
+    }
   }, 60000);
 
   // 起動時にも即座に1回チェック

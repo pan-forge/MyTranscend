@@ -1,5 +1,5 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine } from './sheets.js';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule } from './sheets.js';
 import { sendChatMessage } from './gemini.js';
 import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js';
 
@@ -185,19 +185,26 @@ async function loadSchedule() {
     tripSchedules = trips;
     fixedRoutines = routines;
 
-    if (tripSchedules && tripSchedules.length > 0) {
-      // 最初の予定を表示
-      const first = tripSchedules[0];
-      scheduleText.textContent = `${first.date} ${first.depTime} ${first.origin} ➔ ${first.dest} (${first.transit || '移動'})`;
-    } else {
-      scheduleText.textContent = `[${currentSheetTab}] 旅程データなし`;
-    }
+    // 直近のこれからの予定を自動判定してバナー更新
+    updateScheduleBanner();
 
-    // スケジューラー（定期監視タイマー）を最新データで起動
-    startScheduler(tripSchedules, fixedRoutines);
+    // スケジューラー（定期監視タイマー）を最新データで起動（毎分バナー更新も兼ねる）
+    startScheduler(tripSchedules, fixedRoutines, () => {
+      updateScheduleBanner();
+    });
   } catch (err) {
     console.error('Schedule fetch error:', err);
     scheduleText.textContent = `[${currentSheetTab}] オフラインキャッシュまたは未同期`;
+  }
+}
+
+// バナー表示のリアルタイム更新
+function updateScheduleBanner() {
+  const nextItem = getNextUpcomingSchedule(tripSchedules, fixedRoutines);
+  if (nextItem && nextItem.text) {
+    scheduleText.textContent = nextItem.text;
+  } else {
+    scheduleText.textContent = `[${currentSheetTab}] これからの予定はありません`;
   }
 }
 
