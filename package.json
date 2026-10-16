@@ -17,5 +17,10 @@
   "bugs": {
     "url": "https://github.com/pan-forge/MyTranscend/issues"
   },
-  "homepage": "https://github.com/pan-forge/MyTranscend#readme"
+  "homepage": "https://github.com/pan-forge/MyTranscend#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3"
+  }
 }

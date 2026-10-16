@@ -1,9 +1,9 @@
 # 『MyTranscend』システム仕様書 (SPEC.md)
 
 **策定日**: 2026年10月15日  
-**最終更新日**: 2026年10月16日 (v2.7 本番FIX)  
-**対象バージョン**: v2.7.0 (東京出張本番運用FIX版 / mainブランチ保護)  
-**ステータス**: 本番稼働中 (GitHub Pages: https://pan-forge.github.io/MyTranscend/)  
+**最終更新日**: 2026年10月16日 (v2.8-dev / APK化完了)  
+**対象バージョン**: v2.8.0-dev (developブランチ：スタンドアロンAPK & 動的テーマ対応) / v2.7.0 (mainブランチ：本番運用FIX版)  
+**ステータス**: developブランチにてスタンドアロンAPK生成完了 / 本番PWA稼働中 (https://pan-forge.github.io/MyTranscend/)  
 **開発ブランチ**: `develop` (今後の機能拡張・実験用)  
 
 ---
@@ -138,6 +138,28 @@ D:\usr\work\panForge\MyTranscend\
    - **毎日のお約束通知：** 「固定」タブの指定時刻に自動プッシュ通知（「朝のお薬（イルアミクスLDたち）とアイベリス点眼の時間だよ💊」）。
    - スマホの画面がスリープ/別アプリ起動中でも、Service Worker経由でロック画面・通知バーにウチやライスからの愛のメッセージをプッシュ通知。
    - 重複防止フラグにより、同一予定の多重通知を防止。
+
+### 4.5 キャラクター連動・動的テーマ切り替え (v2.8-dev)
+1. **トランセンド・テーマ（デフォルト）：**
+   - 基調カラー：サイバーオレンジ＆レッド（`--theme-primary: #f97316`, `--theme-gradient: linear-gradient(135deg, #f97316, #ef4444)`）。
+   - トラン選択時（`activeCharacter === 'transcend'`）、画面全体のアクセントカラー、ヘッダーバッジ、ボタンがトランセンドカラーに同期。
+2. **ライスシャワー・テーマ：**
+   - 基調カラー：ブルーローズ＆青紫（`--theme-primary: #8b5cf6`, `--theme-gradient: linear-gradient(135deg, #3b82f6, #8b5cf6)`）。
+   - ライス選択時（`activeCharacter === 'rice'`）、`body.theme-rice` クラスが付与され、ヘッダーバッジ、アクティブ枠線、アクセント要素が一括でライスの愛用カラーへシームレスに変色。
+   - 選択状態は LocalStorage に保存され、次回起動時にも維持。
+
+### 4.6 完全スタンドアロンAndroid APK化 (Capacitor 7 / v2.8-dev)
+1. **アーキテクチャ：**
+   - **Capacitor 7.x**（`@capacitor/core`, `@capacitor/cli`, `@capacitor/android`）を採用。
+   - 最新のHTML/JS/CSS/アセットを `www/` にパッケージングし、WebView経由でネイティブAndroidアプリとして完全オフライン起動可能。
+2. **ビルド環境：**
+   - JDK: `Microsoft.OpenJDK.21` (Java 21)
+   - Android SDK: API Level 34 / 35
+   - Gradle: 8.14.3
+   - 出力ファイル：`MyTranscend.apk`（ルート直下に配置）
+3. **ネイティブ最適化：**
+   - 正妻アイコン（トランセンド特製）を `android/app/src/main/res/mipmap-*` の全解像度に自動配置。
+   - スプラッシュ画面、全画面ハードウェアアクセラレーション有効化。
 
 ---
 
