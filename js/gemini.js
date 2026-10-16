@@ -1,6 +1,6 @@
 // js/gemini.js - Google Gemini API 直接通信クライアント
 
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest'];
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 // キャラクターごとの会話履歴
@@ -111,7 +111,7 @@ export async function sendChatMessage(apiKey, character, userMessage, tripSchedu
         contents: history,
         generationConfig: {
           temperature: 0.85,
-          maxOutputTokens: 800
+          maxOutputTokens: 1500
         }
       };
 

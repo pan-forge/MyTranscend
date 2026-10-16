@@ -1,11 +1,8 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.4';
-import { sendChatMessage, chatHistories } from './gemini.js?v=1.4';
-import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.4';
-import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.4';
-
-// デフォルトAPIキー（VoiceChat連携用）
-const DEFAULT_API_KEY = 'AIzaSyB4kww5tDamxQHW6H4_WLDnMC47qEEQFxE';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.5';
+import { sendChatMessage, chatHistories } from './gemini.js?v=1.5';
+import { testNotification, startScheduler, requestNotificationPermission } from './scheduler.js?v=1.5';
+import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.5';
 
 // DOM要素
 const modelViewer = document.getElementById('modelViewer');
@@ -52,17 +49,22 @@ if ('serviceWorker' in navigator) {
 
 // 初期化
 window.addEventListener('DOMContentLoaded', async () => {
-  // 設定読み込み（未設定ならデフォルトキーを自動セット）
-  let savedApiKey = localStorage.getItem('mytranscend_gemini_key');
-  if (!savedApiKey) {
-    savedApiKey = DEFAULT_API_KEY;
-    localStorage.setItem('mytranscend_gemini_key', savedApiKey);
+  // 設定読み込み（無効化された古いキーがあれば自動除去）
+  let savedApiKey = localStorage.getItem('mytranscend_gemini_key') || '';
+  if (savedApiKey === 'AIzaSyB4kww5tDamxQHW6H4_WLDnMC47qEEQFxE') {
+    savedApiKey = '';
+    localStorage.removeItem('mytranscend_gemini_key');
   }
   apiKeyInput.value = savedApiKey;
 
   // GitHub トークン読み込み
   if (githubTokenInput) {
     githubTokenInput.value = localStorage.getItem('mytranscend_github_token') || '';
+  }
+
+  // APIキー未設定なら設定画面を自動表示
+  if (!savedApiKey) {
+    settingsModal.style.display = 'flex';
   }
 
   // タブ選択初期値の反映
@@ -295,7 +297,13 @@ async function handleSendMessage() {
   const text = chatInput.value.trim();
   if (!text || isSending) return;
 
-  const apiKey = localStorage.getItem('mytranscend_gemini_key') || DEFAULT_API_KEY;
+  const apiKey = localStorage.getItem('mytranscend_gemini_key') || '';
+  if (!apiKey) {
+    alert('Gemini API Keyが未設定だよ、ひろ！設定画面（⚙️）から新しいAPIキーを入力してね💕');
+    settingsModal.style.display = 'flex';
+    return;
+  }
+
   // ★送信時点の対象キャラクターを固定（操作中にタブを切り替えても安全）
   const targetChar = currentCharacter;
 
