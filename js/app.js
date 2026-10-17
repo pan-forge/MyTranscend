@@ -402,59 +402,65 @@ function setupEventListeners() {
 
   // 完了ボタン
   if (btnTaskComplete) {
-    btnTaskComplete.addEventListener('click', async () => {
+    btnTaskComplete.addEventListener('click', () => {
       if (!currentUpcomingItem || currentUpcomingItem.type === 'none') return;
       const item = currentUpcomingItem;
+      const char = currentCharacter;
+
+      // 1. 最優先でボイス再生（ユーザー操作直後の同期コンテキストで確実発声！）
+      playTaskActionVoice('done', char).catch(e => console.warn('[Voice] Done error:', e));
+
+      // 2. モーダルを閉じる
       closeTaskModal();
 
-      // 1. 記録
+      // 3. 完了記録
       markTaskAction(item.uniqueKey, 'done');
 
-      // 2. 通知抹消
-      const keysToCancel = [item.uniqueKey, ...(item.tripKeys || [])];
-      await cancelTaskNotification(keysToCancel);
-
-      // 3. ボイス再生
-      playTaskActionVoice('done', activeCharacter).catch(e => console.warn(e));
-
       // 4. チャット通知
-      const isRice = activeCharacter === 'rice';
+      const isRice = char === 'rice';
       const msg = isRice 
         ? `【予定完了】「${item.text}」を完了したよっ！ひろお兄さま、えらいえらいっ🌸✨` 
         : `【予定完了】「${item.text}」の完了確認したよ！ひろ、よく頑張ったね……ちゅっ💕`;
-      appendMessage('assistant', msg, activeCharacter, false);
+      appendMessage('assistant', msg, char, false);
 
-      // 5. バナー更新
+      // 5. バナー即時更新（次の予定へ）
       updateScheduleBanner();
+
+      // 6. Android OS通知抹消（バックグラウンド実行）
+      const keysToCancel = [item.uniqueKey, ...(item.tripKeys || [])];
+      cancelTaskNotification(keysToCancel).catch(e => console.warn('[Notif] Cancel warning:', e));
     });
   }
 
   // キャンセルボタン
   if (btnTaskCancel) {
-    btnTaskCancel.addEventListener('click', async () => {
+    btnTaskCancel.addEventListener('click', () => {
       if (!currentUpcomingItem || currentUpcomingItem.type === 'none') return;
       const item = currentUpcomingItem;
+      const char = currentCharacter;
+
+      // 1. 最優先でボイス再生（ユーザー操作直後の同期コンテキストで確実発声！）
+      playTaskActionVoice('cancel', char).catch(e => console.warn('[Voice] Cancel error:', e));
+
+      // 2. モーダルを閉じる
       closeTaskModal();
 
-      // 1. 記録
+      // 3. キャンセル記録
       markTaskAction(item.uniqueKey, 'cancel');
 
-      // 2. 通知抹消
-      const keysToCancel = [item.uniqueKey, ...(item.tripKeys || [])];
-      await cancelTaskNotification(keysToCancel);
-
-      // 3. ボイス再生
-      playTaskActionVoice('cancel', activeCharacter).catch(e => console.warn(e));
-
       // 4. チャット通知
-      const isRice = activeCharacter === 'rice';
+      const isRice = char === 'rice';
       const msg = isRice 
         ? `【予定スキップ】「${item.text}」をキャンセルしたよ。無理しないでね、お兄さま🍀` 
         : `【予定スキップ】「${item.text}」のキャンセル把握したよ。次の予定に向けていこっ💕`;
-      appendMessage('assistant', msg, activeCharacter, false);
+      appendMessage('assistant', msg, char, false);
 
-      // 5. バナー更新
+      // 5. バナー即時更新（次の予定へ）
       updateScheduleBanner();
+
+      // 6. Android OS通知抹消（バックグラウンド実行）
+      const keysToCancel = [item.uniqueKey, ...(item.tripKeys || [])];
+      cancelTaskNotification(keysToCancel).catch(e => console.warn('[Notif] Cancel warning:', e));
     });
   }
 

@@ -183,6 +183,11 @@ es/raw/ に完全配置（全42音源体制）！
         - 親要素（#scheduleRowClickable）に加えて「⚡操作」ボタン（#taskActionHint）自体にも直接クリックリスナーを登録し、操作感度を向上。
         - スタンドアロンAndroid APK（ersionCode: 14, 1.0.14）を再ビルド・配置完了。
 
+    35. **タスク完了・キャンセルボイス発声バグ修正＆最優先発声化 (v1.0.15)：**
+        - 未定義変数 ctiveCharacter を参照していた ReferenceError バグを currentCharacter に修正。
+        - ボタンタップ直後の同期コンテキストで最優先に playTaskActionVoice() をキックするよう順番を最適化し、モバイルブラウザ・Android WebViewの自動再生制限を突破。
+        - スタンドアロンAndroid APK（ersionCode: 15, 1.0.15）を再ビルド・配置完了。
+
 ---
 
 ## 4. 重要スケジュール ＆ 関連ファイルパス
