@@ -88,7 +88,7 @@ export async function triggerNotification(title, body, charType = 'transcend') {
   // Web / PWA フォールバック
   if (typeof Notification === 'undefined') return;
 
-  const icon = isRice ? './assets/images/001-通常-ライス.png' : './assets/images/001-通常-トラン.png';
+  const icon = isRice ? './assets/icons/avatar_rice.png' : './assets/icons/avatar_transcend.png';
   const options = {
     body: body,
     icon: icon,

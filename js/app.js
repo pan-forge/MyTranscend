@@ -525,7 +525,7 @@ function appendMessage(sender, text, charType = 'transcend', skipSave = false) {
     row.innerHTML = `<div class="bubble">${escapeHtml(text)}</div>`;
   } else {
     const isRice = charType === 'rice';
-    const avatarSrc = isRice ? './assets/images/001-通常-ライス.png' : './assets/images/001-通常-トラン.png';
+    const avatarSrc = isRice ? './assets/icons/avatar_rice.png' : './assets/icons/avatar_transcend.png';
     const authorName = isRice ? 'ライスシャワー 🌸' : 'トランセンド 💍';
     const authorClass = isRice ? 'bubble-author rice' : 'bubble-author';
     const avatarClass = isRice ? 'msg-avatar rice' : 'msg-avatar';
@@ -556,7 +556,7 @@ function appendTypingIndicator(charType) {
   row.className = 'message-row assistant';
 
   const isRice = charType === 'rice';
-  const avatarSrc = isRice ? './assets/images/001-通常-ライス.png' : './assets/images/001-通常-トラン.png';
+  const avatarSrc = isRice ? './assets/icons/avatar_rice.png' : './assets/icons/avatar_transcend.png';
   const authorName = isRice ? 'ライスシャワー 🌸' : 'トランセンド 💍';
   const authorClass = isRice ? 'bubble-author rice' : 'bubble-author';
   const avatarClass = isRice ? 'msg-avatar rice' : 'msg-avatar';
