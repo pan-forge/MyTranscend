@@ -333,6 +333,32 @@ model-viewer {
   color: var(--text-main);
   line-height: 1.4;
   word-break: break-all;
+  transition: opacity 0.2s ease;
+}
+
+.banner-row-schedule:hover {
+  opacity: 0.9;
+}
+
+.task-action-hint {
+  font-size: 0.68rem;
+  background: var(--theme-bg-tint);
+  color: var(--theme-primary);
+  border: 1px solid var(--theme-border-tint);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+.banner-row-schedule:active .task-action-hint {
+  transform: scale(0.95);
+  background: var(--theme-primary);
+  color: #fff;
 }
 
 .banner-top-row {

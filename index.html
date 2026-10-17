@@ -89,8 +89,9 @@
     <div class="banner-row banner-row-clock">
       <span id="currentClock" class="current-clock">📅 ----/--/--(曜) --:--</span>
     </div>
-    <div class="banner-row banner-row-schedule">
+    <div class="banner-row banner-row-schedule" id="scheduleRowClickable" title="タップして完了またはキャンセル" style="cursor: pointer; justify-content: space-between;">
       <span id="scheduleText" class="schedule-text">旅程を同期中...</span>
+      <span id="taskActionHint" class="task-action-hint">⚡操作</span>
     </div>
   </div>
 
@@ -181,7 +182,31 @@
     </div>
   </div>
 
-  <!-- Scripts (Cache-busting v1.0.11) -->
-  <script type="module" src="./js/app.js?v=1.0.11"></script>
+  <!-- Task Action Modal (完了 / キャンセル操作) -->
+  <div id="taskActionModal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 360px; text-align: center;">
+      <div class="modal-header">
+        <h2 style="font-size: 1.05rem;">📋 直近の予定どうする？</h2>
+        <button id="btnCloseTaskModal" class="close-btn">&times;</button>
+      </div>
+      <p id="taskModalTargetText" style="margin: 12px 0 16px; font-weight: bold; color: var(--theme-primary); font-size: 0.88rem; background: var(--bg-input); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); word-break: break-all;"></p>
+      
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button id="btnTaskComplete" class="modal-save-btn" style="background: linear-gradient(135deg, #10b981, #059669); font-size: 0.95rem; padding: 12px;">
+          ✅ 完了したよ！（褒めボイス＆次へ）
+        </button>
+        <button id="btnTaskCancel" class="btn-sub" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-sub); font-size: 0.88rem; padding: 10px; border-radius: 8px; cursor: pointer;">
+          🚫 今回はキャンセル（了解ボイス＆次へ）
+        </button>
+      </div>
+
+      <div style="margin-top: 14px; text-align: right;">
+        <button id="btnTaskResetAll" type="button" style="background: none; border: none; color: var(--text-sub); font-size: 0.72rem; text-decoration: underline; cursor: pointer;">完了・スキップ履歴をリセット</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts (Cache-busting v1.0.12) -->
+  <script type="module" src="./js/app.js?v=1.0.12"></script>
 </body>
 </html>

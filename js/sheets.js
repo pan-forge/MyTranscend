@@ -408,12 +408,48 @@ export function isTodayDate(dateStr, now = new Date()) {
   return false;
 }
 
+const STORAGE_KEY_TASK_ACTIONS = 'mytranscend_task_actions';
+
+/**
+ * 完了・キャンセル済みタスクのマップを取得
+ */
+export function getTaskActionMap() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_TASK_ACTIONS);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * タスクを完了またはキャンセルとして記録
+ */
+export function markTaskAction(uniqueKey, action = 'done') {
+  if (!uniqueKey) return;
+  const map = getTaskActionMap();
+  map[uniqueKey] = {
+    action: action, // 'done' | 'cancel'
+    timestamp: Date.now()
+  };
+  localStorage.setItem(STORAGE_KEY_TASK_ACTIONS, JSON.stringify(map));
+}
+
+/**
+ * タスク完了・キャンセル履歴をクリア（必要時用）
+ */
+export function clearTaskActions() {
+  localStorage.removeItem(STORAGE_KEY_TASK_ACTIONS);
+}
+
 /**
  * 現在時刻から一番近い未来の予定（出張または固定ルーティン・記念日）を時系列ソートで自動算出
+ * ※完了・キャンセル済みのタスクは自動的にスキップされ、次の予定を即時繰り上げ
  */
 export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) {
   const now = new Date();
   const allUpcoming = [];
+  const actionMap = getTaskActionMap();
 
   // ①-A 固定ルーティン（毎週曜日チェック: 今日から直近7日間の中で未来のイベントを展開）
   for (let offset = 0; offset <= 7; offset++) {
@@ -436,6 +472,10 @@ export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) 
 
       const eventDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0);
       if (eventDate > now) {
+        const dateStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+        const uniqueKey = `fixed_${dateStr}_${norm}_${routine.title}`;
+        if (actionMap[uniqueKey]) continue; // 完了・キャンセル済みならスキップ！
+
         let dateLabel = '';
         if (offset === 0) {
           dateLabel = '本日';
@@ -449,6 +489,8 @@ export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) 
         allUpcoming.push({
           dateObj: eventDate,
           type: 'routine',
+          title: routine.title,
+          uniqueKey: uniqueKey,
           text: `${dateLabel} ${norm} 【${routine.title}】`
         });
       }
@@ -460,9 +502,15 @@ export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) 
     if (!routine.isDateSpecific || !routine.date) continue;
     const targetDateObj = parseSpecificDate(routine.date, routine.time, now);
     if (targetDateObj && targetDateObj > now) {
+      const norm = normalizeTime(routine.time || '00:00');
+      const y = targetDateObj.getFullYear();
+      const m = String(targetDateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(targetDateObj.getDate()).padStart(2, '0');
+      const uniqueKey = `fixed_spec_${y}${m}${d}_${norm}_${routine.title}`;
+      if (actionMap[uniqueKey]) continue; // 完了・キャンセル済みならスキップ！
+
       const isToday = targetDateObj.toDateString() === now.toDateString();
       const isTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toDateString() === targetDateObj.toDateString();
-      const norm = normalizeTime(routine.time || '00:00');
       let dateLabel = '';
       if (isToday) {
         dateLabel = '本日';
@@ -476,6 +524,8 @@ export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) 
       allUpcoming.push({
         dateObj: targetDateObj,
         type: 'routine',
+        title: routine.title,
+        uniqueKey: uniqueKey,
         text: `${dateLabel} ${norm} 【${routine.title}】`
       });
     }
@@ -486,6 +536,11 @@ export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) 
     if (!trip.depTime && !trip.arrTime) continue;
     const tripDateObj = parseTripDate(trip.date, trip.depTime || trip.arrTime);
     if (tripDateObj && tripDateObj > now) {
+      const depKey = `trip_dep_${trip.date}_${trip.depTime}_${trip.origin}`;
+      const arrKey = `trip_arr_${trip.date}_${trip.arrTime}_${trip.dest}`;
+      const mainKey = `trip_${trip.date}_${trip.depTime || trip.arrTime}_${trip.origin}_${trip.dest}`;
+      if (actionMap[mainKey] || actionMap[depKey] || actionMap[arrKey]) continue; // 完了・キャンセル済みならスキップ！
+
       const isToday = tripDateObj.toDateString() === now.toDateString();
       const isTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toDateString() === tripDateObj.toDateString();
       const dateLabel = isToday ? '本日' : (isTomorrow ? '明日' : trip.date);
@@ -493,6 +548,9 @@ export function getNextUpcomingSchedule(tripSchedules = [], fixedRoutines = []) 
       allUpcoming.push({
         dateObj: tripDateObj,
         type: 'trip',
+        title: `${trip.origin} ➔ ${trip.dest}`,
+        uniqueKey: mainKey,
+        tripKeys: [depKey, arrKey, mainKey],
         text: `${dateLabel} ${trip.depTime || trip.arrTime} ${trip.origin} ➔ ${trip.dest} (${trip.transit || '移動'})`
       });
     }

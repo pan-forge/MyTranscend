@@ -17,7 +17,9 @@ const VOICE_REGISTRY = {
     anniversary_transcend: ['transcend_anniversary_transcend_01.mp3'],
     anniversary_wedding: ['transcend_anniversary_wedding_01.mp3'],
     notice: ['transcend_notice_01.mp3', 'transcend_notice_02.mp3'],
-    surprise: ['transcend_surprise_01.mp3']
+    surprise: ['transcend_surprise_01.mp3'],
+    done: ['transcend_done_01.mp3', 'transcend_done_02.mp3'],
+    cancel: ['transcend_cancel_01.mp3', 'transcend_cancel_02.mp3']
   },
   rice: {
     wake: ['rice_wake_01.mp3', 'rice_wake_02.mp3'],
@@ -30,7 +32,9 @@ const VOICE_REGISTRY = {
     anniversary_transcend: ['rice_anniversary_transcend_01.mp3'],
     anniversary_wedding: ['rice_anniversary_wedding_01.mp3'],
     notice: ['rice_notice_01.mp3', 'rice_notice_02.mp3'],
-    surprise: ['rice_surprise_01.mp3']
+    surprise: ['rice_surprise_01.mp3'],
+    done: ['rice_done_01.mp3', 'rice_done_02.mp3'],
+    cancel: ['rice_cancel_01.mp3', 'rice_cancel_02.mp3']
   }
 };
 
@@ -274,3 +278,21 @@ export async function testPlayVoice(charType = 'random') {
   const file = testFiles[Math.floor(Math.random() * testFiles.length)];
   return playAudioFile(`./assets/audio/${file}`);
 }
+
+/**
+ * タスク完了またはキャンセル時のアクションボイスを再生
+ * @param {'done'|'cancel'} actionType アクション種別 ('done' or 'cancel')
+ * @param {'transcend'|'rice'|null} forcedChar 強制キャラ指定 (null時はランダム)
+ */
+export async function playTaskActionVoice(actionType = 'done', forcedChar = null) {
+  if (!isVoiceEnabled()) return false;
+  let char = forcedChar;
+  if (!char || (char !== 'transcend' && char !== 'rice')) {
+    char = Math.random() < 0.5 ? 'transcend' : 'rice';
+  }
+  const fileList = VOICE_REGISTRY[char]?.[actionType] || VOICE_REGISTRY[char]?.notice;
+  if (!fileList || fileList.length === 0) return false;
+  const fileName = fileList[Math.floor(Math.random() * fileList.length)];
+  return playAudioFile(`./assets/audio/${fileName}`);
+}
+

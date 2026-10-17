@@ -1,9 +1,9 @@
 // js/app.js - メインUI制御 ＆ アプリロジック
-import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel } from './sheets.js?v=1.8';
+import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTabTitle, formatTabOptionLabel, markTaskAction, clearTaskActions, getTaskActionMap } from './sheets.js?v=1.12';
 import { sendChatMessage, chatHistories, clearGeminiHistories } from './gemini.js?v=2.4';
-import { testNotification, startScheduler, requestNotificationPermission, scheduleAllLocalNotifications } from './scheduler.js?v=2.0';
+import { testNotification, startScheduler, requestNotificationPermission, scheduleAllLocalNotifications, cancelTaskNotification } from './scheduler.js?v=2.1';
 import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.8';
-import { isVoiceEnabled, setVoiceEnabled, getVoiceVolume, setVoiceVolume, testPlayVoice } from './audio.js?v=1.0';
+import { isVoiceEnabled, setVoiceEnabled, getVoiceVolume, setVoiceVolume, testPlayVoice, playTaskActionVoice } from './audio.js?v=1.12';
 
 // DOM要素
 const modelViewer = document.getElementById('modelViewer');
@@ -351,6 +351,121 @@ function setupEventListeners() {
     alert('設定を保存したよ、ひろ💕');
   });
 
+  // タスク完了・キャンセル操作モーダル
+  const scheduleRowClickable = document.getElementById('scheduleRowClickable');
+  const taskActionModal = document.getElementById('taskActionModal');
+  const btnCloseTaskModal = document.getElementById('btnCloseTaskModal');
+  const taskModalTargetText = document.getElementById('taskModalTargetText');
+  const btnTaskComplete = document.getElementById('btnTaskComplete');
+  const btnTaskCancel = document.getElementById('btnTaskCancel');
+  const btnTaskResetAll = document.getElementById('btnTaskResetAll');
+
+  function openTaskModal() {
+    if (!currentUpcomingItem || currentUpcomingItem.type === 'none') {
+      alert('現在操作できる直近の予定はありません🍀');
+      return;
+    }
+    if (taskModalTargetText) {
+      taskModalTargetText.textContent = currentUpcomingItem.text;
+    }
+    if (taskActionModal) {
+      taskActionModal.classList.remove('hidden');
+    }
+  }
+
+  function closeTaskModal() {
+    if (taskActionModal) {
+      taskActionModal.classList.add('hidden');
+    }
+  }
+
+  if (scheduleRowClickable) {
+    scheduleRowClickable.addEventListener('click', openTaskModal);
+  }
+  if (btnCloseTaskModal) {
+    btnCloseTaskModal.addEventListener('click', closeTaskModal);
+  }
+  if (taskActionModal) {
+    taskActionModal.addEventListener('click', (e) => {
+      if (e.target === taskActionModal) closeTaskModal();
+    });
+  }
+
+  // 完了ボタン
+  if (btnTaskComplete) {
+    btnTaskComplete.addEventListener('click', async () => {
+      if (!currentUpcomingItem || currentUpcomingItem.type === 'none') return;
+      const item = currentUpcomingItem;
+      closeTaskModal();
+
+      // 1. 記録
+      markTaskAction(item.uniqueKey, 'done');
+
+      // 2. 通知抹消
+      const keysToCancel = [item.uniqueKey, ...(item.tripKeys || [])];
+      await cancelTaskNotification(keysToCancel);
+
+      // 3. ボイス再生
+      playTaskActionVoice('done', activeCharacter).catch(e => console.warn(e));
+
+      // 4. チャット通知
+      const isRice = activeCharacter === 'rice';
+      const msg = isRice 
+        ? `【予定完了】「${item.text}」を完了したよっ！ひろお兄さま、えらいえらいっ🌸✨` 
+        : `【予定完了】「${item.text}」の完了確認したよ！ひろ、よく頑張ったね……ちゅっ💕`;
+      appendMessage('assistant', msg, activeCharacter, false);
+
+      // 5. バナー更新
+      updateScheduleBanner();
+    });
+  }
+
+  // キャンセルボタン
+  if (btnTaskCancel) {
+    btnTaskCancel.addEventListener('click', async () => {
+      if (!currentUpcomingItem || currentUpcomingItem.type === 'none') return;
+      const item = currentUpcomingItem;
+      closeTaskModal();
+
+      // 1. 記録
+      markTaskAction(item.uniqueKey, 'cancel');
+
+      // 2. 通知抹消
+      const keysToCancel = [item.uniqueKey, ...(item.tripKeys || [])];
+      await cancelTaskNotification(keysToCancel);
+
+      // 3. ボイス再生
+      playTaskActionVoice('cancel', activeCharacter).catch(e => console.warn(e));
+
+      // 4. チャット通知
+      const isRice = activeCharacter === 'rice';
+      const msg = isRice 
+        ? `【予定スキップ】「${item.text}」をキャンセルしたよ。無理しないでね、お兄さま🍀` 
+        : `【予定スキップ】「${item.text}」のキャンセル把握したよ。次の予定に向けていこっ💕`;
+      appendMessage('assistant', msg, activeCharacter, false);
+
+      // 5. バナー更新
+      updateScheduleBanner();
+    });
+  }
+
+  // 履歴リセットボタン
+  if (btnTaskResetAll) {
+    btnTaskResetAll.addEventListener('click', async () => {
+      if (confirm('完了・キャンセル済みの予定履歴をすべてリセットし、再表示しますか？')) {
+        clearTaskActions();
+        closeTaskModal();
+        updateScheduleBanner();
+        try {
+          await scheduleAllLocalNotifications(tripSchedules, fixedRoutines);
+        } catch (e) {
+          console.warn(e);
+        }
+        alert('予定の完了・キャンセル履歴をリセットしたよ！');
+      }
+    });
+  }
+
   // 会話ログのGitHub同期（CONTEXT.md保存）ボタン
   if (btnSaveContext) {
     btnSaveContext.addEventListener('click', async () => {
@@ -512,14 +627,19 @@ function formatRemainingTime(targetDate) {
   return `（あと${diffDays}日）`;
 }
 
-// バナー表示のリアルタイム更新（あと何分表示つき）
+let currentUpcomingItem = null;
+
+// バナー表示のリアルタイム更新（あと何分表示つき＆操作ヒント連動）
 function updateScheduleBanner() {
-  const nextItem = getNextUpcomingSchedule(tripSchedules, fixedRoutines);
-  if (nextItem && nextItem.text) {
-    const remaining = nextItem.dateObj ? ` ${formatRemainingTime(nextItem.dateObj)}` : '';
-    scheduleText.textContent = `${nextItem.text}${remaining}`;
+  currentUpcomingItem = getNextUpcomingSchedule(tripSchedules, fixedRoutines);
+  const hintEl = document.getElementById('taskActionHint');
+  if (currentUpcomingItem && currentUpcomingItem.text && currentUpcomingItem.type !== 'none') {
+    const remaining = currentUpcomingItem.dateObj ? ` ${formatRemainingTime(currentUpcomingItem.dateObj)}` : '';
+    scheduleText.textContent = `${currentUpcomingItem.text}${remaining}`;
+    if (hintEl) hintEl.style.display = 'inline-flex';
   } else {
     scheduleText.textContent = `[${currentSheetTab}] これからの予定はありません`;
+    if (hintEl) hintEl.style.display = 'none';
   }
 }
 

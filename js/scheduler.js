@@ -1,5 +1,5 @@
 // js/scheduler.js - スケジュール連動＆プッシュ通知スケジューラー（Capacitor Native Local Notifications & Web Notification 両対応）
-import { generateRoutineMessage, parseTripDate, parseSpecificDate, isTodayDate } from './sheets.js';
+import { generateRoutineMessage, parseTripDate, parseSpecificDate, isTodayDate, getTaskActionMap } from './sheets.js';
 import { playVoiceEvent, detectVoiceCategory, getSoundResourceName, selectVoiceActor } from './audio.js';
 
 const NOTIFIED_CACHE_KEY = 'mytranscend_notified_history';
@@ -14,13 +14,32 @@ function getLocalNotificationsPlugin() {
 /**
  * 文字列キーから32bit正の整数IDを生成（Android Notification ID要件に準拠）
  */
-function stringToId(str) {
+export function stringToId(str) {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = ((hash << 5) - hash) + str.charCodeAt(i);
     hash |= 0;
   }
   return Math.abs(hash) % 2147483647;
+}
+
+/**
+ * 指定したキー（またはID）のネイティブ通知をキャンセル抹消
+ */
+export async function cancelTaskNotification(uniqueKeys = []) {
+  const LocalNotifications = getLocalNotificationsPlugin();
+  if (!LocalNotifications) return;
+
+  try {
+    const keys = Array.isArray(uniqueKeys) ? uniqueKeys : [uniqueKeys];
+    const notifIds = keys.filter(Boolean).map(k => ({ id: stringToId(k) }));
+    if (notifIds.length > 0) {
+      await LocalNotifications.cancel({ notifications: notifIds });
+      console.log('[Scheduler] Cancelled native notifications:', notifIds);
+    }
+  } catch (err) {
+    console.warn('[Scheduler] Error cancelling notification:', err);
+  }
 }
 
 /**
@@ -179,6 +198,7 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
 
     const now = new Date();
     const notificationsToSchedule = [];
+    const actionMap = getTaskActionMap();
 
     // ① 固定ルーティン
     // 1-A. 毎週ルーティン（今日〜7日間先までを予約）
@@ -200,12 +220,14 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
 
         const scheduledTime = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), h, m, 0);
         if (scheduledTime > now) {
+          const uniqueKey = `fixed_${dateStr}_${normTime}_${routine.title}`;
+          if (actionMap[uniqueKey]) continue; // 完了・キャンセル済みは予約しない
+
           const category = detectVoiceCategory(routine.title, routine.note);
           const actor = selectVoiceActor(category);
           const char = actor.char;
           const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
           const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
-          const uniqueKey = `fixed_${dateStr}_${normTime}_${routine.title}`;
           const id = stringToId(uniqueKey);
 
           const soundName = getSoundResourceName(actor.category, char);
@@ -229,15 +251,17 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
       const targetDateObj = parseSpecificDate(routine.date, routine.time, now);
       if (targetDateObj && targetDateObj > now) {
         const normTime = normalizeTime(routine.time || '00:00');
+        const y = targetDateObj.getFullYear();
+        const m = String(targetDateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(targetDateObj.getDate()).padStart(2, '0');
+        const uniqueKey = `fixed_spec_${y}${m}${d}_${normTime}_${routine.title}`;
+        if (actionMap[uniqueKey]) continue; // 完了・キャンセル済みは予約しない
+
         const category = detectVoiceCategory(routine.title, routine.note);
         const actor = selectVoiceActor(category);
         const char = actor.char;
         const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
         const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
-        const y = targetDateObj.getFullYear();
-        const m = String(targetDateObj.getMonth() + 1).padStart(2, '0');
-        const d = String(targetDateObj.getDate()).padStart(2, '0');
-        const uniqueKey = `fixed_spec_${y}${m}${d}_${normTime}_${routine.title}`;
         const id = stringToId(uniqueKey);
 
         const soundName = getSoundResourceName(actor.category, char);
@@ -261,53 +285,59 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
 
       // 出発10分前
       if (trip.depTime) {
-        const tenMinBefore = getTenMinutesBefore(trip.depTime);
-        const depDateObj = parseTripDate(tripDate, tenMinBefore);
-        if (depDateObj && depDateObj > now) {
-          const actor = selectVoiceActor('trip_dep');
-          const char = actor.char;
-          const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
-          const msg = formatTripNotificationMessage(trip, false, char);
-          const uniqueKey = `trip_dep_${tripDate}_${trip.depTime}_${trip.origin}`;
-          const id = stringToId(uniqueKey);
+        const uniqueKey = `trip_dep_${tripDate}_${trip.depTime}_${trip.origin}`;
+        const mainKey = `trip_${tripDate}_${trip.depTime}_${trip.origin}_${trip.dest || ''}`;
+        if (!actionMap[uniqueKey] && !actionMap[mainKey]) {
+          const tenMinBefore = getTenMinutesBefore(trip.depTime);
+          const depDateObj = parseTripDate(tripDate, tenMinBefore);
+          if (depDateObj && depDateObj > now) {
+            const actor = selectVoiceActor('trip_dep');
+            const char = actor.char;
+            const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
+            const msg = formatTripNotificationMessage(trip, false, char);
+            const id = stringToId(uniqueKey);
 
-          const soundName = getSoundResourceName(actor.category, char);
+            const soundName = getSoundResourceName(actor.category, char);
 
-          const notifItem = {
-            id: id,
-            title: author,
-            body: msg,
-            iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
-            schedule: { at: depDateObj }
-          };
-          if (soundName) notifItem.sound = soundName;
-          notificationsToSchedule.push(notifItem);
+            const notifItem = {
+              id: id,
+              title: author,
+              body: msg,
+              iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
+              schedule: { at: depDateObj }
+            };
+            if (soundName) notifItem.sound = soundName;
+            notificationsToSchedule.push(notifItem);
+          }
         }
       }
 
       // 到着10分前
       if (trip.arrTime && trip.dest) {
-        const tenMinBeforeArr = getTenMinutesBefore(trip.arrTime);
-        const arrDateObj = parseTripDate(tripDate, tenMinBeforeArr);
-        if (arrDateObj && arrDateObj > now) {
-          const actor = selectVoiceActor('trip_arr');
-          const char = actor.char;
-          const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
-          const msg = formatTripNotificationMessage(trip, true, char);
-          const uniqueKey = `trip_arr_${tripDate}_${trip.arrTime}_${trip.dest}`;
-          const id = stringToId(uniqueKey);
+        const uniqueKey = `trip_arr_${tripDate}_${trip.arrTime}_${trip.dest}`;
+        const mainKey = `trip_${tripDate}_${trip.arrTime}_${trip.origin || ''}_${trip.dest}`;
+        if (!actionMap[uniqueKey] && !actionMap[mainKey]) {
+          const tenMinBeforeArr = getTenMinutesBefore(trip.arrTime);
+          const arrDateObj = parseTripDate(tripDate, tenMinBeforeArr);
+          if (arrDateObj && arrDateObj > now) {
+            const actor = selectVoiceActor('trip_arr');
+            const char = actor.char;
+            const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
+            const msg = formatTripNotificationMessage(trip, true, char);
+            const id = stringToId(uniqueKey);
 
-          const soundName = getSoundResourceName(actor.category, char);
+            const soundName = getSoundResourceName(actor.category, char);
 
-          const notifItem = {
-            id: id,
-            title: author,
-            body: msg,
-            iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
-            schedule: { at: arrDateObj }
-          };
-          if (soundName) notifItem.sound = soundName;
-          notificationsToSchedule.push(notifItem);
+            const notifItem = {
+              id: id,
+              title: author,
+              body: msg,
+              iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
+              schedule: { at: arrDateObj }
+            };
+            if (soundName) notifItem.sound = soundName;
+            notificationsToSchedule.push(notifItem);
+          }
         }
       }
     }
@@ -356,6 +386,7 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
   const todayStr = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
 
   const notifiedMap = getNotifiedMap();
+  const actionMap = getTaskActionMap();
 
   // ① 毎日のお約束ルーティン（固定タブ）のチェック
   const currentDayOfWeek = now.getDay();
@@ -367,6 +398,7 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       // 特定日付イベント（曜日チェック無視、本日日付照合）
       if (!isTodayDate(routine.date, now)) continue;
       const key = `fixed_spec_${todayStr}_${normTime}_${routine.title}`;
+      if (actionMap[key]) continue; // 完了・キャンセル済みならスキップ
       if (!notifiedMap[key]) {
         const category = detectVoiceCategory(routine.title, routine.note);
         const actor = selectVoiceActor(category);
@@ -382,6 +414,7 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
         continue;
       }
       const key = `fixed_${todayStr}_${normTime}_${routine.title}`;
+      if (actionMap[key]) continue; // 完了・キャンセル済みならスキップ
       if (!notifiedMap[key]) {
         const category = detectVoiceCategory(routine.title, routine.note);
         const actor = selectVoiceActor(category);
@@ -406,7 +439,8 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       const tenMinBefore = getTenMinutesBefore(trip.depTime);
       if (tenMinBefore === currentHHMM) {
         const key = `trip_dep_${todayStr}_${trip.depTime}_${trip.origin}`;
-        if (!notifiedMap[key]) {
+        const mainKey = `trip_${todayStr}_${trip.depTime}_${trip.origin}_${trip.dest || ''}`;
+        if (!actionMap[key] && !actionMap[mainKey] && !notifiedMap[key]) {
           const actor = selectVoiceActor('trip_dep');
           const char = actor.char;
           const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
@@ -421,7 +455,8 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       const tenMinBeforeArr = getTenMinutesBefore(trip.arrTime);
       if (tenMinBeforeArr === currentHHMM) {
         const key = `trip_arr_${todayStr}_${trip.arrTime}_${trip.dest}`;
-        if (!notifiedMap[key]) {
+        const mainKey = `trip_${todayStr}_${trip.arrTime}_${trip.origin || ''}_${trip.dest}`;
+        if (!actionMap[key] && !actionMap[mainKey] && !notifiedMap[key]) {
           const actor = selectVoiceActor('trip_arr');
           const char = actor.char;
           const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
