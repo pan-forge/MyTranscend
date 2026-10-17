@@ -3,6 +3,7 @@ import { fetchTripSchedule, fetchFixedRoutine, getNextUpcomingSchedule, fetchTab
 import { sendChatMessage, chatHistories, clearGeminiHistories } from './gemini.js?v=2.4';
 import { testNotification, startScheduler, requestNotificationPermission, scheduleAllLocalNotifications } from './scheduler.js?v=2.0';
 import { fetchContext, saveContextToGitHub, formatChatHistoryToMarkdown } from './github.js?v=1.8';
+import { isVoiceEnabled, setVoiceEnabled, getVoiceVolume, setVoiceVolume, testPlayVoice } from './audio.js?v=1.0';
 
 // DOM要素
 const modelViewer = document.getElementById('modelViewer');
@@ -272,8 +273,48 @@ function setupEventListeners() {
     if (e.key === 'Enter') handleSendMessage();
   });
 
+  // 設定モーダル内のボイス要素
+  const voiceEnabledToggle = document.getElementById('voiceEnabledToggle');
+  const voiceVolumeSlider = document.getElementById('voiceVolumeSlider');
+  const voiceVolumeLabel = document.getElementById('voiceVolumeLabel');
+  const btnTestVoiceTranscend = document.getElementById('btnTestVoiceTranscend');
+  const btnTestVoiceRice = document.getElementById('btnTestVoiceRice');
+
+  function syncVoiceSettingsUI() {
+    if (voiceEnabledToggle) voiceEnabledToggle.checked = isVoiceEnabled();
+    if (voiceVolumeSlider) {
+      const vol = getVoiceVolume();
+      voiceVolumeSlider.value = vol;
+      if (voiceVolumeLabel) voiceVolumeLabel.textContent = `${Math.round(vol * 100)}%`;
+    }
+  }
+
+  if (voiceVolumeSlider) {
+    voiceVolumeSlider.addEventListener('input', (e) => {
+      const vol = parseFloat(e.target.value);
+      setVoiceVolume(vol);
+      if (voiceVolumeLabel) voiceVolumeLabel.textContent = `${Math.round(vol * 100)}%`;
+    });
+  }
+  if (voiceEnabledToggle) {
+    voiceEnabledToggle.addEventListener('change', (e) => {
+      setVoiceEnabled(e.target.checked);
+    });
+  }
+  if (btnTestVoiceTranscend) {
+    btnTestVoiceTranscend.addEventListener('click', () => {
+      testPlayVoice('transcend');
+    });
+  }
+  if (btnTestVoiceRice) {
+    btnTestVoiceRice.addEventListener('click', () => {
+      testPlayVoice('rice');
+    });
+  }
+
   // 設定モーダル
   btnSettings.addEventListener('click', () => {
+    syncVoiceSettingsUI();
     settingsModal.style.display = 'flex';
   });
   btnCloseModal.addEventListener('click', () => {
@@ -298,6 +339,10 @@ function setupEventListeners() {
     if (githubTokenInput) {
       localStorage.setItem('mytranscend_github_token', githubTokenInput.value.trim());
     }
+
+    // ボイス設定保存
+    if (voiceEnabledToggle) setVoiceEnabled(voiceEnabledToggle.checked);
+    if (voiceVolumeSlider) setVoiceVolume(parseFloat(voiceVolumeSlider.value));
 
     settingsModal.style.display = 'none';
     alert('設定を保存したよ、ひろ💕');

@@ -1,5 +1,6 @@
 // js/scheduler.js - スケジュール連動＆プッシュ通知スケジューラー（Capacitor Native Local Notifications & Web Notification 両対応）
 import { generateRoutineMessage, parseTripDate, parseSpecificDate, isTodayDate } from './sheets.js';
+import { playVoiceEvent, detectVoiceCategory } from './audio.js';
 
 const NOTIFIED_CACHE_KEY = 'mytranscend_notified_history';
 
@@ -58,9 +59,13 @@ export async function requestNotificationPermission() {
 /**
  * 即時プッシュ通知を送信（テスト通知・即時通知用）
  */
-export async function triggerNotification(title, body, charType = 'transcend') {
+export async function triggerNotification(title, body, charType = 'transcend', voiceCategory = null) {
   const isRice = charType === 'rice';
   const iconColor = isRice ? '#8b5cf6' : '#f97316';
+
+  // 🎵 ボイス再生トリガー
+  const category = voiceCategory || detectVoiceCategory(title, body);
+  playVoiceEvent(category, charType).catch(e => console.warn('[Scheduler] playVoiceEvent error:', e));
 
   const LocalNotifications = getLocalNotificationsPlugin();
   if (LocalNotifications) {

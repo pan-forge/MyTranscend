@@ -1,5 +1,5 @@
-// MyTranscend Service Worker v2.7
-const CACHE_NAME = 'mytranscend-v2.7';
+// MyTranscend Service Worker v2.8
+const CACHE_NAME = 'mytranscend-v2.8';
 
 // オフラインキャッシュ対象アセット
 const PRECACHE_ASSETS = [
@@ -8,12 +8,15 @@ const PRECACHE_ASSETS = [
   './manifest.json',
   './css/style.css',
   './js/app.js',
+  './js/audio.js',
   './js/sheets.js',
   './js/scheduler.js',
   './js/gemini.js',
   './js/github.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
+  './assets/icons/avatar_transcend.png',
+  './assets/icons/avatar_rice.png',
   './assets/icons/icon_character_toggle.png',
   './assets/images/001-通常-トラン.png',
   './assets/images/001-通常-ライス.png'
