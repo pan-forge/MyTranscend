@@ -204,21 +204,23 @@ function setupEventListeners() {
     updateCharacterTheme('rice');
   });
 
-  // 出張タブ切り替え
+  // 出張タブ切り替え（完了・キャンセル履歴もリフレッシュ）
   sheetTabSelect.addEventListener('change', async (e) => {
     currentSheetTab = e.target.value;
     localStorage.setItem('mytranscend_sheet_tab', currentSheetTab);
+    clearTaskActions();
     await loadSchedule(true);
   });
 
   // スプシ＆共有コンテキスト最新状態の強制同期ボタン (ヘッダーアイコン)
-  // ※会話履歴は消去せず、スプシ旅程＆GitHubコンテキストのみを安全に最新化
+  // ※完了・キャンセルした予定もすべて元通り復活して再読み込み（オペミス対応）
   btnSyncSheets.addEventListener('click', async () => {
     btnSyncSheets.disabled = true;
     btnSyncSheets.style.opacity = '0.5';
     try {
+      clearTaskActions();
       await loadSchedule(true);
-      alert('最新データ（スプシ旅程＆GitHubコンテキスト）を取り込んだよ、ひろ！✨');
+      alert('最新データを取り込み、完了・キャンセルした予定も元通り復活させたよ、ひろ！✨');
     } catch (err) {
       alert(`最新データの取り込みに失敗しちゃった💦 (${err.message})`);
     } finally {
