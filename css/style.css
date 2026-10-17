@@ -304,7 +304,7 @@ model-viewer {
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
 }
 
-/* Schedule Bar (2-Row Layout) */
+/* Schedule Bar (3-Row Smart Stack Layout) */
 .schedule-banner {
   background: #15161f;
   border-bottom: 1px solid var(--border-color);
@@ -313,6 +313,26 @@ model-viewer {
   flex-direction: column;
   gap: 6px;
   font-size: 0.8rem;
+}
+
+.banner-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.banner-row-select {
+  gap: 8px;
+}
+
+.banner-row-clock {
+  justify-content: flex-start;
+}
+
+.banner-row-schedule {
+  color: var(--text-main);
+  line-height: 1.4;
+  word-break: break-all;
 }
 
 .banner-top-row {
@@ -324,7 +344,7 @@ model-viewer {
 
 .current-clock {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: var(--theme-primary);
   background: var(--bg-input);

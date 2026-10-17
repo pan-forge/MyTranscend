@@ -75,21 +75,21 @@
     </div>
   </section>
 
-  <!-- Trip Schedule Banner -->
+  <!-- Trip Schedule Banner (3-Row Smart Stack) -->
   <div id="scheduleBanner" class="schedule-banner">
-    <div class="banner-top-row">
-      <div class="banner-badge-group">
-        <span class="badge">NEXTお出かけ</span>
-        <select id="sheetTabSelect" class="tab-select" title="出張日程タブ切り替え">
-          <option value="261022">26/10/22(東京出張)</option>
-          <option value="261119">26/11/19(東京出張)</option>
-          <option value="261217">26/12/17(東京出張)</option>
-          <option value="270121">27/01/21(東京出張)</option>
-        </select>
-      </div>
-      <span id="currentClock" class="current-clock">🕒 --:--</span>
+    <div class="banner-row banner-row-select">
+      <span class="badge">NEXTお出かけ</span>
+      <select id="sheetTabSelect" class="tab-select" title="出張日程タブ切り替え">
+        <option value="261022">26/10/22(東京出張)</option>
+        <option value="261119">26/11/19(東京出張)</option>
+        <option value="261217">26/12/17(東京出張)</option>
+        <option value="270121">27/01/21(東京出張)</option>
+      </select>
     </div>
-    <div class="banner-bottom-row">
+    <div class="banner-row banner-row-clock">
+      <span id="currentClock" class="current-clock">📅 ----/--/--(曜) --:--</span>
+    </div>
+    <div class="banner-row banner-row-schedule">
       <span id="scheduleText" class="schedule-text">旅程を同期中...</span>
     </div>
   </div>
@@ -181,7 +181,7 @@
     </div>
   </div>
 
-  <!-- Scripts (Cache-busting v1.0.10) -->
-  <script type="module" src="./js/app.js?v=1.0.10"></script>
+  <!-- Scripts (Cache-busting v1.0.11) -->
+  <script type="module" src="./js/app.js?v=1.0.11"></script>
 </body>
 </html>

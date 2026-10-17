@@ -529,13 +529,14 @@ function startCurrentClock() {
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
   function tick() {
     const now = new Date();
+    const year = now.getFullYear();
     const month = now.getMonth() + 1;
     const date = now.getDate();
     const dayStr = dayNames[now.getDay()];
     const h = String(now.getHours()).padStart(2, '0');
     const m = String(now.getMinutes()).padStart(2, '0');
     if (clockEl) {
-      clockEl.textContent = `📅 ${month}/${date}(${dayStr}) ${h}:${m}`;
+      clockEl.textContent = `📅 ${year}/${month}/${date}(${dayStr}) ${h}:${m}`;
     }
     // バナーの「あと何分」も時計に合わせてリアルタイム更新
     if (tripSchedules.length > 0 || fixedRoutines.length > 0) {
