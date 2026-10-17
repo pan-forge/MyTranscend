@@ -1,5 +1,5 @@
-// MyTranscend Service Worker v2.8
-const CACHE_NAME = 'mytranscend-v2.8';
+// MyTranscend Service Worker v1.0.10
+const CACHE_NAME = 'mytranscend-v1.0.10';
 
 // オフラインキャッシュ対象アセット
 const PRECACHE_ASSETS = [

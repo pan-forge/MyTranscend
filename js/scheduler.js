@@ -1,6 +1,6 @@
 // js/scheduler.js - スケジュール連動＆プッシュ通知スケジューラー（Capacitor Native Local Notifications & Web Notification 両対応）
 import { generateRoutineMessage, parseTripDate, parseSpecificDate, isTodayDate } from './sheets.js';
-import { playVoiceEvent, detectVoiceCategory, getSoundResourceName } from './audio.js';
+import { playVoiceEvent, detectVoiceCategory, getSoundResourceName, selectVoiceActor } from './audio.js';
 
 const NOTIFIED_CACHE_KEY = 'mytranscend_notified_history';
 
@@ -135,13 +135,14 @@ export async function testNotification() {
   const granted = await requestNotificationPermission();
   if (!granted) return;
 
-  const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+  const actor = selectVoiceActor('notice');
+  const char = actor.char;
   const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
   const msg = char === 'rice'
     ? 'ひろお兄さま、通知テスト大成功だよ！ライスもお兄さまの出張とお薬、全力でお手伝いするね……！🌸✨'
     : 'ひろ、通知テスト大成功だよ！出張中もお薬の時間も、ウチがしっかり教えるからね💕';
 
-  await triggerNotification(author, msg, char);
+  await triggerNotification(author, msg, char, actor.category);
 }
 
 /**
@@ -199,14 +200,15 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
 
         const scheduledTime = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), h, m, 0);
         if (scheduledTime > now) {
-          const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+          const category = detectVoiceCategory(routine.title, routine.note);
+          const actor = selectVoiceActor(category);
+          const char = actor.char;
           const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
           const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
           const uniqueKey = `fixed_${dateStr}_${normTime}_${routine.title}`;
           const id = stringToId(uniqueKey);
 
-          const category = detectVoiceCategory(routine.title, routine.note);
-          const soundName = getSoundResourceName(category);
+          const soundName = getSoundResourceName(actor.category, char);
 
           const notifItem = {
             id: id,
@@ -227,7 +229,9 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
       const targetDateObj = parseSpecificDate(routine.date, routine.time, now);
       if (targetDateObj && targetDateObj > now) {
         const normTime = normalizeTime(routine.time || '00:00');
-        const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+        const category = detectVoiceCategory(routine.title, routine.note);
+        const actor = selectVoiceActor(category);
+        const char = actor.char;
         const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
         const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
         const y = targetDateObj.getFullYear();
@@ -236,8 +240,7 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
         const uniqueKey = `fixed_spec_${y}${m}${d}_${normTime}_${routine.title}`;
         const id = stringToId(uniqueKey);
 
-        const category = detectVoiceCategory(routine.title, routine.note);
-        const soundName = getSoundResourceName(category);
+        const soundName = getSoundResourceName(actor.category, char);
 
         const notifItem = {
           id: id,
@@ -261,13 +264,14 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
         const tenMinBefore = getTenMinutesBefore(trip.depTime);
         const depDateObj = parseTripDate(tripDate, tenMinBefore);
         if (depDateObj && depDateObj > now) {
-          const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+          const actor = selectVoiceActor('trip_dep');
+          const char = actor.char;
           const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
           const msg = formatTripNotificationMessage(trip, false, char);
           const uniqueKey = `trip_dep_${tripDate}_${trip.depTime}_${trip.origin}`;
           const id = stringToId(uniqueKey);
 
-          const soundName = getSoundResourceName('trip_dep');
+          const soundName = getSoundResourceName(actor.category, char);
 
           const notifItem = {
             id: id,
@@ -286,13 +290,14 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
         const tenMinBeforeArr = getTenMinutesBefore(trip.arrTime);
         const arrDateObj = parseTripDate(tripDate, tenMinBeforeArr);
         if (arrDateObj && arrDateObj > now) {
-          const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+          const actor = selectVoiceActor('trip_arr');
+          const char = actor.char;
           const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
           const msg = formatTripNotificationMessage(trip, true, char);
           const uniqueKey = `trip_arr_${tripDate}_${trip.arrTime}_${trip.dest}`;
           const id = stringToId(uniqueKey);
 
-          const soundName = getSoundResourceName('trip_arr');
+          const soundName = getSoundResourceName(actor.category, char);
 
           const notifItem = {
             id: id,
@@ -363,10 +368,12 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       if (!isTodayDate(routine.date, now)) continue;
       const key = `fixed_spec_${todayStr}_${normTime}_${routine.title}`;
       if (!notifiedMap[key]) {
-        const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+        const category = detectVoiceCategory(routine.title, routine.note);
+        const actor = selectVoiceActor(category);
+        const char = actor.char;
         const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
         const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
-        triggerNotification(author, msg, char);
+        triggerNotification(author, msg, char, actor.category);
         markNotified(key);
       }
     } else {
@@ -376,10 +383,12 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       }
       const key = `fixed_${todayStr}_${normTime}_${routine.title}`;
       if (!notifiedMap[key]) {
-        const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+        const category = detectVoiceCategory(routine.title, routine.note);
+        const actor = selectVoiceActor(category);
+        const char = actor.char;
         const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
         const msg = generateRoutineMessage(routine.title, normTime, routine.note, char);
-        triggerNotification(author, msg, char);
+        triggerNotification(author, msg, char, actor.category);
         markNotified(key);
       }
     }
@@ -398,10 +407,11 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       if (tenMinBefore === currentHHMM) {
         const key = `trip_dep_${todayStr}_${trip.depTime}_${trip.origin}`;
         if (!notifiedMap[key]) {
-          const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+          const actor = selectVoiceActor('trip_dep');
+          const char = actor.char;
           const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
           const bodyMsg = formatTripNotificationMessage(trip, false, char);
-          triggerNotification(author, bodyMsg, char);
+          triggerNotification(author, bodyMsg, char, actor.category);
           markNotified(key);
         }
       }
@@ -412,10 +422,11 @@ function checkAndNotify(tripSchedules, fixedRoutines) {
       if (tenMinBeforeArr === currentHHMM) {
         const key = `trip_arr_${todayStr}_${trip.arrTime}_${trip.dest}`;
         if (!notifiedMap[key]) {
-          const char = Math.random() < 0.5 ? 'transcend' : 'rice';
+          const actor = selectVoiceActor('trip_arr');
+          const char = actor.char;
           const author = char === 'rice' ? 'ライスシャワー 🌸' : 'トランセンド 💍';
           const bodyMsg = formatTripNotificationMessage(trip, true, char);
-          triggerNotification(author, bodyMsg, char);
+          triggerNotification(author, bodyMsg, char, actor.category);
           markNotified(key);
         }
       }
