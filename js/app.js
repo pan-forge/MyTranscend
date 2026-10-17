@@ -166,6 +166,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   // イベントリスナー設定
   setupEventListeners();
 
+  // 現在時刻時計（案A×パターン1）＆リアルタイムカウントダウンの開始
+  startCurrentClock();
+
   // スプレッドシート旅程 ＆ 共有コンテキストの自動取得
   await loadSchedule();
 });
@@ -488,14 +491,55 @@ async function loadSchedule(forceRefresh = false) {
   }
 }
 
-// バナー表示のリアルタイム更新
+// 残り時間の整形（例: あと15分, あと2時間10分, あと3日）
+function formatRemainingTime(targetDate) {
+  if (!targetDate) return '';
+  const now = new Date();
+  const diffMs = targetDate.getTime() - now.getTime();
+  if (diffMs <= 0) return '';
+
+  const diffMin = Math.floor(diffMs / (1000 * 60));
+  if (diffMin === 0) return '（まもなく）';
+  if (diffMin < 60) return `（あと${diffMin}分）`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  const remMin = diffMin % 60;
+  if (diffHours < 24) {
+    return remMin > 0 ? `（あと${diffHours}時間${remMin}分）` : `（あと${diffHours}時間）`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `（あと${diffDays}日）`;
+}
+
+// バナー表示のリアルタイム更新（あと何分表示つき）
 function updateScheduleBanner() {
   const nextItem = getNextUpcomingSchedule(tripSchedules, fixedRoutines);
   if (nextItem && nextItem.text) {
-    scheduleText.textContent = nextItem.text;
+    const remaining = nextItem.dateObj ? ` ${formatRemainingTime(nextItem.dateObj)}` : '';
+    scheduleText.textContent = `${nextItem.text}${remaining}`;
   } else {
     scheduleText.textContent = `[${currentSheetTab}] これからの予定はありません`;
   }
+}
+
+// 現在時刻時計（案A×パターン1）＆リアルタイムカウントダウン更新
+function startCurrentClock() {
+  const clockEl = document.getElementById('currentClock');
+  function tick() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    if (clockEl) {
+      clockEl.textContent = `🕒 ${h}:${m}`;
+    }
+    // バナーの「あと何分」も時計に合わせてリアルタイム更新
+    if (tripSchedules.length > 0 || fixedRoutines.length > 0) {
+      updateScheduleBanner();
+    }
+  }
+  tick();
+  setInterval(tick, 1000); // 1秒ごとに更新チェック
 }
 
 // メッセージ送信処理
