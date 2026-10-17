@@ -1,6 +1,6 @@
 // js/scheduler.js - スケジュール連動＆プッシュ通知スケジューラー（Capacitor Native Local Notifications & Web Notification 両対応）
 import { generateRoutineMessage, parseTripDate, parseSpecificDate, isTodayDate } from './sheets.js';
-import { playVoiceEvent, detectVoiceCategory } from './audio.js';
+import { playVoiceEvent, detectVoiceCategory, getSoundResourceName } from './audio.js';
 
 const NOTIFIED_CACHE_KEY = 'mytranscend_notified_history';
 
@@ -63,8 +63,11 @@ export async function triggerNotification(title, body, charType = 'transcend', v
   const isRice = charType === 'rice';
   const iconColor = isRice ? '#8b5cf6' : '#f97316';
 
-  // 🎵 ボイス再生トリガー
+  // 🎵 ボイス判定
   const category = voiceCategory || detectVoiceCategory(title, body);
+  const soundName = getSoundResourceName(category, charType);
+
+  // フォアグラウンド用Web Audio再生
   playVoiceEvent(category, charType).catch(e => console.warn('[Scheduler] playVoiceEvent error:', e));
 
   const LocalNotifications = getLocalNotificationsPlugin();
@@ -72,16 +75,18 @@ export async function triggerNotification(title, body, charType = 'transcend', v
     try {
       const permStatus = await LocalNotifications.checkPermissions();
       if (permStatus.display === 'granted') {
+        const notifPayload = {
+          id: Math.floor(Math.random() * 2000000000) + 1,
+          title: title,
+          body: body,
+          iconColor: iconColor,
+          schedule: { at: new Date(Date.now() + 500) }
+        };
+        if (soundName) {
+          notifPayload.sound = soundName;
+        }
         await LocalNotifications.schedule({
-          notifications: [
-            {
-              id: Math.floor(Math.random() * 2000000000) + 1,
-              title: title,
-              body: body,
-              iconColor: iconColor,
-              schedule: { at: new Date(Date.now() + 500) }
-            }
-          ]
+          notifications: [notifPayload]
         });
         return;
       }
@@ -200,13 +205,18 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
           const uniqueKey = `fixed_${dateStr}_${normTime}_${routine.title}`;
           const id = stringToId(uniqueKey);
 
-          notificationsToSchedule.push({
+          const category = detectVoiceCategory(routine.title, routine.note);
+          const soundName = getSoundResourceName(category);
+
+          const notifItem = {
             id: id,
             title: author,
             body: msg,
             iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
             schedule: { at: scheduledTime }
-          });
+          };
+          if (soundName) notifItem.sound = soundName;
+          notificationsToSchedule.push(notifItem);
         }
       }
     }
@@ -226,13 +236,18 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
         const uniqueKey = `fixed_spec_${y}${m}${d}_${normTime}_${routine.title}`;
         const id = stringToId(uniqueKey);
 
-        notificationsToSchedule.push({
+        const category = detectVoiceCategory(routine.title, routine.note);
+        const soundName = getSoundResourceName(category);
+
+        const notifItem = {
           id: id,
           title: author,
           body: msg,
           iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
           schedule: { at: targetDateObj }
-        });
+        };
+        if (soundName) notifItem.sound = soundName;
+        notificationsToSchedule.push(notifItem);
       }
     }
 
@@ -252,13 +267,17 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
           const uniqueKey = `trip_dep_${tripDate}_${trip.depTime}_${trip.origin}`;
           const id = stringToId(uniqueKey);
 
-          notificationsToSchedule.push({
+          const soundName = getSoundResourceName('trip_dep');
+
+          const notifItem = {
             id: id,
             title: author,
             body: msg,
             iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
             schedule: { at: depDateObj }
-          });
+          };
+          if (soundName) notifItem.sound = soundName;
+          notificationsToSchedule.push(notifItem);
         }
       }
 
@@ -273,13 +292,17 @@ export async function scheduleAllLocalNotifications(tripSchedules = [], fixedRou
           const uniqueKey = `trip_arr_${tripDate}_${trip.arrTime}_${trip.dest}`;
           const id = stringToId(uniqueKey);
 
-          notificationsToSchedule.push({
+          const soundName = getSoundResourceName('trip_arr');
+
+          const notifItem = {
             id: id,
             title: author,
             body: msg,
             iconColor: char === 'rice' ? '#8b5cf6' : '#f97316',
             schedule: { at: arrDateObj }
-          });
+          };
+          if (soundName) notifItem.sound = soundName;
+          notificationsToSchedule.push(notifItem);
         }
       }
     }

@@ -176,7 +176,32 @@ export function selectVoiceActor(category) {
 }
 
 /**
- * ボイスを再生するメイン関数
+ * Androidネイティブ通知用のサウンドリソース名（拡張子なし）を取得
+ * @param {string} category 
+ * @param {string} forcedChar 
+ * @returns {string|null} 例: 'rice_med_morning_01'
+ */
+export function getSoundResourceName(category = 'notice', forcedChar = null) {
+  if (!isVoiceEnabled()) return null;
+
+  let actorInfo;
+  if (forcedChar && (forcedChar === 'transcend' || forcedChar === 'rice')) {
+    actorInfo = { char: forcedChar, isSurprise: false, category };
+  } else {
+    actorInfo = selectVoiceActor(category);
+  }
+
+  const { char, category: finalCategory } = actorInfo;
+  const fileList = VOICE_REGISTRY[char]?.[finalCategory] || VOICE_REGISTRY[char]?.notice;
+  if (!fileList || fileList.length === 0) return null;
+
+  const fileName = fileList[Math.floor(Math.random() * fileList.length)];
+  // 拡張子 .mp3 を除いた名前を返す（Android res/raw 仕様に準拠）
+  return fileName.replace(/\.[^/.]+$/, '');
+}
+
+/**
+ * ボイスを再生するメイン関数（Web Audio / HTML5 Audio）
  * @param {string} category イベントカテゴリ ('wake', 'med_morning', etc.)
  * @param {string} forcedChar 強制キャラ指定 (null または 'transcend' / 'rice')
  * @returns {Promise<boolean>} 再生成否
@@ -207,6 +232,8 @@ export async function playVoiceEvent(category = 'notice', forcedChar = null) {
 
   return playAudioFile(filePath);
 }
+
+
 
 /**
  * 指定音声ファイルを再生

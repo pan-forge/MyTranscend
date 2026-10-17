@@ -523,15 +523,19 @@ function updateScheduleBanner() {
   }
 }
 
-// 現在時刻時計（案A×パターン1）＆リアルタイムカウントダウン更新
+// 現在時刻時計（案A×パターン3：月/日(曜日) 時:分）＆リアルタイムカウントダウン更新
 function startCurrentClock() {
   const clockEl = document.getElementById('currentClock');
+  const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
   function tick() {
     const now = new Date();
+    const month = now.getMonth() + 1;
+    const date = now.getDate();
+    const dayStr = dayNames[now.getDay()];
     const h = String(now.getHours()).padStart(2, '0');
     const m = String(now.getMinutes()).padStart(2, '0');
     if (clockEl) {
-      clockEl.textContent = `🕒 ${h}:${m}`;
+      clockEl.textContent = `📅 ${month}/${date}(${dayStr}) ${h}:${m}`;
     }
     // バナーの「あと何分」も時計に合わせてリアルタイム更新
     if (tripSchedules.length > 0 || fixedRoutines.length > 0) {
