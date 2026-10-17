@@ -371,18 +371,25 @@ function setupEventListeners() {
       taskModalTargetText.textContent = currentUpcomingItem.text;
     }
     if (taskActionModal) {
-      taskActionModal.classList.remove('hidden');
+      taskActionModal.style.display = 'flex';
     }
   }
 
   function closeTaskModal() {
     if (taskActionModal) {
-      taskActionModal.classList.add('hidden');
+      taskActionModal.style.display = 'none';
     }
   }
 
   if (scheduleRowClickable) {
     scheduleRowClickable.addEventListener('click', openTaskModal);
+  }
+  const hintEl = document.getElementById('taskActionHint');
+  if (hintEl) {
+    hintEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openTaskModal();
+    });
   }
   if (btnCloseTaskModal) {
     btnCloseTaskModal.addEventListener('click', closeTaskModal);

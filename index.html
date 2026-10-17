@@ -183,11 +183,11 @@
   </div>
 
   <!-- Task Action Modal (完了 / キャンセル操作) -->
-  <div id="taskActionModal" class="modal-overlay hidden">
+  <div id="taskActionModal" class="modal-overlay">
     <div class="modal-content" style="max-width: 360px; text-align: center;">
-      <div class="modal-header">
-        <h2 style="font-size: 1.05rem;">📋 直近の予定どうする？</h2>
-        <button id="btnCloseTaskModal" class="close-btn">&times;</button>
+      <div class="modal-title">
+        <span>📋 直近の予定どうする？</span>
+        <button id="btnCloseTaskModal" class="icon-btn" style="width: 28px; height: 28px;">✕</button>
       </div>
       <p id="taskModalTargetText" style="margin: 12px 0 16px; font-weight: bold; color: var(--theme-primary); font-size: 0.88rem; background: var(--bg-input); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color); word-break: break-all;"></p>
       
@@ -206,7 +206,7 @@
     </div>
   </div>
 
-  <!-- Scripts (Cache-busting v1.0.13) -->
-  <script type="module" src="./js/app.js?v=1.0.13"></script>
+  <!-- Scripts (Cache-busting v1.0.14) -->
+  <script type="module" src="./js/app.js?v=1.0.14"></script>
 </body>
 </html>
